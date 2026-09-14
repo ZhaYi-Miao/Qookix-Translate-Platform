@@ -1,0 +1,371 @@
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="logo">
+    <img class="mark" src="/logo.png" alt="QookiX" width="26" height="26">
+    <div class="name">QookiX Launcher<span class="sub">翻译缓存系统</span></div>
+  </div>
+  <nav>
+    <a href="#/overview" id="nav-overview">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      <span class="lbl">概览</span></a>
+    <a href="#/worker" id="nav-worker">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2 4.5 12.5H11l-1 9.5L19.5 11H13l1-9z"/></svg>
+      <span class="lbl">后台任务</span></a>
+    <a href="#/models" id="nav-models">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+      <span class="lbl">模型与配置</span></a>
+    <a href="#/cache" id="nav-cache">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></svg>
+      <span class="lbl">缓存浏览</span></a>
+    <a href="#/feedback" id="nav-feedback">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 4h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 13h6M9 17h4"/></svg>
+      <span class="lbl">反馈审核</span><span class="badge" id="fb_badge" style="display:none"></span></a>
+    <a href="#/logs" id="nav-logs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>
+      <span class="lbl">运行日志</span></a>
+    <a href="#/about" id="nav-about">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>
+      <span class="lbl">关于</span></a>
+  </nav>
+  <div class="foot">
+    <button id="themeBtn" onclick="toggleTheme()" style="width:100%;">暗色模式</button>
+    <div class="hint">Powered By ZhaYi</div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div>
+      <h1 id="view_title">概览</h1>
+      <div class="updated" id="updated">加载中…</div>
+    </div>
+    <div class="toolbar">
+      <select id="stat_range" onchange="refresh()" title="统计区间（数据永久保留，不再按天清空）" style="width:112px;">
+        <option value="today">今天</option>
+        <option value="yesterday">昨天</option>
+        <option value="week">近一周</option>
+        <option value="month">近一月</option>
+        <option value="all">全部</option>
+      </select>
+      <button onclick="refreshAll()">立即刷新</button>
+      <button class="primary" id="autoBtn" onclick="toggleAuto()">自动刷新: 开</button>
+    </div>
+  </div>
+
+  <section class="view active" id="view-overview">
+    <div class="breaker-banner ok" id="breaker_banner">
+      <div><span class="dot"></span><span id="breaker_text">模型熔断器：正常</span></div>
+      <div class="details" id="breaker_details"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Worker 状态 <span class="sub" id="ov_worker_status">—</span></h2>
+      <div class="speed-line" style="margin-top:0;">
+        <span>进度：<strong id="ov_worker_progress">—</strong></span>
+        <span>翻译速度：<strong id="ov_worker_speed">—</strong></span>
+        <span>预计剩余：<strong id="ov_worker_eta">—</strong></span>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="metric"><div class="label">总请求数</div><div class="value" id="m_total">—</div></div>
+      <div class="metric"><div class="label">缓存命中率</div><div class="value" id="m_hitrate">—</div></div>
+      <div class="metric"><div class="label">LLM 成功调用</div><div class="value" id="m_llm_ok">—</div></div>
+      <div class="metric"><div class="label">LLM 失败调用</div><div class="value" id="m_llm_failed">—</div></div>
+      <div class="metric"><div class="label">限流触发</div><div class="value" id="m_ratelimit">—</div></div>
+      <div class="metric"><div class="label">平均延迟（全部模型）</div><div class="value small" id="m_llmlatency">—</div></div>
+      <div class="metric"><div class="label">带正文请求</div><div class="value" id="m_withbody">—</div></div>
+      <div class="metric"><div class="label">不带正文请求</div><div class="value" id="m_nobody">—</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel"><h2>请求分布</h2><canvas id="chart_requests"></canvas></div>
+      <div class="panel"><h2>缓存命中 <span class="sub" id="hitrate_sub"></span></h2><canvas id="chart_cache"></canvas></div>
+    </div>
+    <div class="grid-2">
+      <div class="panel"><h2>LLM 调用分布（按模型）</h2><canvas id="chart_llm"></canvas></div>
+      <div class="panel"><h2>反馈分布</h2><canvas id="chart_feedback"></canvas></div>
+    </div>
+    <div class="panel"><h2>热门 Mod <span class="sub" id="mods_count"></span></h2><canvas id="chart_mods" style="max-height:340px;"></canvas></div>
+
+    <div class="grid-2">
+      <div class="panel"><h2>描述 / 正文 LLM 调用</h2><table id="t_kind_llm"></table></div>
+      <div class="panel"><h2>描述 / 正文 缓存</h2><table id="t_kind_cache"></table></div>
+    </div>
+    <div class="grid-2">
+      <div class="panel"><h2>请求详情</h2><table id="t_requests"></table></div>
+      <div class="panel"><h2>LLM 与 Modrinth</h2><table id="t_llm"></table></div>
+    </div>
+    <div class="grid-2">
+      <div class="panel"><h2>stale 反馈状态</h2><table id="t_stale"></table></div>
+      <div class="panel"><h2>quality 反馈类型</h2><table id="t_quality"></table></div>
+    </div>
+    <div class="panel"><h2>活跃 IP <span class="sub" id="ips_count"></span></h2><div id="ips_wrap"></div></div>
+  </section>
+
+  <section class="view" id="view-worker">
+    <div class="panel">
+      <h2>实时槽位 <span class="sub" id="live_sub">—</span>
+        <label class="hint" style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:400;">
+          <input type="checkbox" id="live_auto" checked style="accent-color:var(--accent);"> 自动刷新（2 秒）
+        </label>
+      </h2>
+      <div id="live_wrap"><div class="hint">加载中…</div></div>
+      <div class="hint" style="margin-top:8px;">
+        实心 = 在调上游，空白 = 空闲，斜纹 = 在等每分钟名额。<b>等名额不占槽位</b>，所以会有"槽位空着却在排队"。
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Worker 后台任务 <span class="sub" id="worker_status_text">空闲</span></h2>
+      <div class="worker-toolbar">
+        <label><input type="checkbox" id="worker_toggle" onchange="toggleWorker()"><span>启用 Worker</span></label>
+        <label title="开启后 Worker 在翻译描述的同时缓存正文。正文较长（截断后最长 12000 字符、分块翻译），会明显增加模型调用次数与耗时。">
+          <input type="checkbox" id="worker_body" onchange="toggleWorkerBody()"><span>同时缓存正文</span></label>
+        <button onclick="startWorker('preheat')" id="btn_preheat" title="按下面勾选的来源逐个跑一批">预热</button>
+        <button onclick="startWorker('refresh')" id="btn_refresh">检测更新</button>
+        <button class="danger" onclick="stopWorker()" id="btn_stop" disabled>停止</button>
+      </div>
+      <div class="worker-toolbar" style="margin-top:-6px;">
+        <span class="hint">自动并发: <strong id="worker_parallelism">—</strong>（= 各 Provider 并发之和，并行翻译）</span>
+      </div>
+      <div id="preheat_sources" class="preheat-box"></div>
+      <div id="worker_progress_wrap" style="display:none;">
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="worker_progress_fill">0%</div></div>
+        <div class="hint"><span id="worker_progress_text">—</span></div>
+        <div class="speed-line">
+          <span>翻译速度：<strong id="worker_speed">计算中…</strong></span>
+          <span>已用时：<strong id="worker_elapsed">—</strong></span>
+          <span>预计剩余：<strong id="worker_eta">计算中…</strong></span>
+          <span class="src" id="worker_speed_src"></span>
+        </div>
+      </div>
+      <div class="worker-stat-grid">
+        <div class="worker-stat"><div class="lbl">当前任务成功</div><div class="val" id="worker_ok" style="color:var(--good);">0</div></div>
+        <div class="worker-stat"><div class="lbl">当前任务失败</div><div class="val" id="worker_fail" style="color:var(--bad);">0</div></div>
+        <div class="worker-stat"><div class="lbl">今日成功</div><div class="val" id="worker_today_ok">0</div></div>
+        <div class="worker-stat"><div class="lbl">今日失败</div><div class="val" id="worker_today_fail">0</div></div>
+        <div class="worker-stat"><div class="lbl">上次运行</div><div class="val" id="worker_last_run" style="font-size:14px;">—</div></div>
+      </div>
+      <div id="worker_recent_wrap" style="display:none;margin-top:16px;">
+        <div class="hint" style="margin-bottom:6px;">最近处理（最多 50 条）</div>
+        <pre id="worker_recent"></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-models">
+    <div class="panel">
+      <h2>接口鉴权 <span class="sub">逐接口控制是否需要账号密码，保存后立即生效</span>
+        <span class="toolbar">
+          <button class="sm" onclick="authSetClientPublic()">恢复默认（客户端公开）</button>
+          <button class="sm" onclick="authSetAllRequired()">全部需要鉴权</button>
+        </span></h2>
+      <div class="hint" style="margin-bottom:9px;">⚠ 给客户端接口（/translate/*、/feedback/*、/health）打开鉴权后，模组用户会全部失败——除非客户端也带上账号密码。
+        静态页、/logo.png、/logs.txt 由 nginx 固定鉴权，不在此列表。</div>
+      <div class="auth-grid" id="auth_grid"></div>
+    </div>
+    <div class="panel">
+      <h2><span id="model_usage_title">模型用量与熔断（今天）</span> <span class="sub">预算按 Worker 逐模型每日上限</span></h2>
+      <table id="t_model_usage"><tbody><tr><td class="empty">加载中…</td></tr></tbody></table>
+    </div>
+    <div class="panel">
+      <h2>AI 管家 <span class="sub">让一个模型读脱敏快照给运维建议（只出建议，不改配置）</span></h2>
+      <div class="cf-actions">
+        <label class="hint" style="display:flex;align-items:center;gap:6px;">管家模型
+          <select id="advisor_provider" style="width:140px;padding:4px;"></select>
+          <input type="text" id="advisor_model" placeholder="模型名，如 your-model-name" style="width:220px;padding:4px;">
+        </label>
+        <label class="hint" style="display:flex;align-items:center;gap:6px;" title="管家看到的窗口统计都按这个长度算，并自动附上一个等长窗口做趋势对比。免费账号排队白天夜里差别大，建议 10~15 分钟。">观察窗
+          <input type="number" id="advisor_window" min="1" max="120" step="1" style="width:70px;padding:4px;"> 分钟
+        </label>
+        <button class="sm" onclick="advisorSnapshot()" title="只生成并显示脱敏快照，不会发给任何模型">看快照</button>
+        <button class="primary sm" onclick="advisorAsk()" title="把快照发给上面选的模型，让它给建议">问管家</button>
+        <button class="sm" onclick="advisorLast()">看上次建议</button>
+        <span id="advisor_state" class="hint"></span>
+      </div>
+      <div class="hint" style="margin-top:6px;">
+        快照含账号/模型/并发/RPM/延迟/成功率/错误分类 + 脱敏错误样本；不含 Key、Base URL、服务器信息、正文、用户反馈。改完模型要「保存配置」。
+      </div>
+      <div id="advisor_advice" style="display:none;margin-top:10px;"></div>
+      <pre id="advisor_raw" style="display:none;max-height:340px;overflow:auto;margin-top:10px;"></pre>
+    </div>
+    <div class="panel">
+      <h2>Provider 供应商 <span class="sub" id="providers_count"></span>
+        <button class="primary sm" onclick="addProvider()">＋ 添加 Provider</button></h2>
+      <div class="provider-grid" id="providers_grid"></div>
+    </div>
+    <div class="panel">
+      <h2>Fallback 链路（从上到下逐条尝试，可跨 Provider 混排） <span class="sub" id="chain_count"></span>
+        <button class="sm" onclick="addChainStep()">＋ 添加模型</button></h2>
+      <div class="chain-list" id="chain_list"></div>
+      <div class="cf-actions">
+        <label class="hint" style="display:flex;align-items:center;gap:6px;">熔断阈值（连续失败次数）
+          <input type="number" id="cfg_breaker_threshold" min="1" style="width:70px;padding:4px;"></label>
+        <label class="hint" style="display:flex;align-items:center;gap:6px;">熔断时长（分钟）
+          <input type="number" id="cfg_breaker_duration" min="1" style="width:70px;padding:4px;"></label>
+        <label class="hint" style="display:flex;align-items:center;gap:6px;" title="正文按此字符数切块并行翻译。调大=每次请求更长、调用次数更少；调小=切得更碎、并行度更高但调用次数更多。允许 200-8000。">
+          正文分块字符数 <input type="number" id="cfg_body_chunk" min="200" max="8000" style="width:80px;padding:4px;"></label>
+        <button class="primary" onclick="saveConfig()">保存配置</button>
+        <button onclick="testConfigAll()" title="按面板当前填写的内容测试，无需先保存">测试整条链</button>
+        <button class="danger" onclick="resetConfig()">恢复默认</button>
+        <span id="config_result"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-cache">
+    <div class="panel">
+      <h2>搜索 <span class="sub" id="counts"></span></h2>
+      <div class="row">
+        <input type="text" id="q" placeholder="输入 mod id 或键名关键词（部分匹配即可），回车搜索">
+        <select id="cache_kind" onchange="cacheSearch()">
+          <option value="all">全部类型</option>
+          <option value="desc">仅描述</option>
+          <option value="body">仅正文</option>
+        </select>
+        <select id="cache_limit" onchange="cacheSearch()">
+          <option value="20">20 条/页</option>
+          <option value="50" selected>50 条/页</option>
+          <option value="100">100 条/页</option>
+          <option value="200">200 条/页</option>
+        </select>
+        <button class="primary" onclick="cacheSearch()">搜索</button>
+        <button onclick="cacheReset()">重置</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>缓存条目 <span class="sub" id="pageinfo"></span></h2>
+      <table id="t_list"><tbody><tr><td class="empty">加载中…</td></tr></tbody></table>
+      <div class="pager">
+        <button id="btn_prev" onclick="cachePrev()">上一页</button>
+        <span class="hint" id="page_label"></span>
+        <button id="btn_next" onclick="cacheNext()">下一页</button>
+      </div>
+    </div>
+    <div class="panel" id="detail_panel" style="display:none;">
+      <h2>译文详情 <span class="sub" id="detail_meta"></span>
+        <span class="toolbar">
+          <span class="hint" id="md_state"></span>
+          <button onclick="toggleRaw()" id="rawBtn">显示源码</button>
+          <button onclick="copyDetail()" id="copyBtn">复制全文</button>
+          <a id="project_link" href="#" target="_blank" rel="noopener" style="text-decoration:none;"><button>打开原站</button></a>
+        </span>
+      </h2>
+      <div class="detail-grid">
+        <div class="col" id="col_desc">
+          <div class="colhead"><span>描述</span><span class="sub" id="sub_desc"></span></div>
+          <div class="md" id="text_desc"></div>
+        </div>
+        <div class="col" id="col_body">
+          <div class="colhead"><span>正文</span><span class="sub" id="sub_body"></span></div>
+          <div class="md" id="text_body"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-feedback">
+    <div class="cards">
+      <div class="metric"><div class="label">待处理</div><div class="value warn" id="fb_n_pending">—</div></div>
+      <div class="metric"><div class="label">重新翻译中</div><div class="value small" id="fb_n_retranslating">—</div></div>
+      <div class="metric"><div class="label">重译失败</div><div class="value small bad" id="fb_n_failed">—</div></div>
+      <div class="metric"><div class="label">已处理</div><div class="value small good" id="fb_n_done">—</div></div>
+      <div class="metric"><div class="label">已忽略</div><div class="value small" id="fb_n_ignored">—</div></div>
+      <div class="metric"><div class="label">反馈总数</div><div class="value small" id="fb_n_total">—</div></div>
+    </div>
+    <div class="panel">
+      <h2>用户反馈审核 <span class="sub" id="fb_sub"></span></h2>
+      <div class="row" style="margin-bottom:10px;">
+        <select id="fb_status" onchange="fbReload()" style="width:138px;">
+          <option value="pending">待处理</option>
+          <option value="retranslating">重新翻译中</option>
+          <option value="failed">重译失败</option>
+          <option value="done">已处理</option>
+          <option value="ignored">已忽略</option>
+          <option value="all">全部</option>
+        </select>
+        <input type="text" id="fb_q" placeholder="按 mod id 搜索，回车生效" style="flex:1;min-width:170px;">
+        <select id="fb_limit" onchange="fbReload()" style="width:104px;">
+          <option value="20">20 条/页</option>
+          <option value="50">50 条/页</option>
+          <option value="100">100 条/页</option>
+        </select>
+        <button onclick="fbToggleSelectAll()" id="fb_selall">全选本页</button>
+        <button class="primary" onclick="fbBatch('done')">批量已处理</button>
+        <button onclick="fbBatch('ignored')">批量忽略</button>
+        <button onclick="fbReload()">刷新</button>
+      </div>
+      <table id="t_feedback"><tbody><tr><td class="empty">加载中…</td></tr></tbody></table>
+      <div class="pager">
+        <button id="fb_prev" onclick="fbPage(-1)">上一页</button>
+        <span class="hint" id="fb_pagelabel"></span>
+        <button id="fb_next" onclick="fbPage(1)">下一页</button>
+      </div>
+    </div>
+    <div class="panel" style="padding:11px 16px;">
+      <div class="hint">
+        重新翻译 = 清缓存后重翻（正文分块，几十秒）；成功变「已处理」，失败变「重译失败」，原因看日志里的 <span class="mono">[FEEDBACK]</span>。
+        「查看译文」跳到缓存浏览并展开对照。
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-logs">
+    <div class="panel">
+      <h2>按模型查看日志 <span class="sub" id="log_summary"></span></h2>
+      <div class="row" style="margin-bottom:10px;">
+        <select id="log_model" onchange="loadLogs()" style="width:232px;"></select>
+        <input type="text" id="log_q" placeholder="关键词过滤（mod id / failed / deadline …），回车生效" style="flex:1;min-width:180px;">
+        <select id="log_lines" onchange="loadLogs()" style="width:104px;">
+          <option value="200">200 行</option>
+          <option value="400" selected>400 行</option>
+          <option value="1000">1000 行</option>
+          <option value="2000">2000 行</option>
+        </select>
+        <label class="hint" style="display:flex;align-items:center;gap:6px;white-space:nowrap;">
+          <input type="checkbox" id="log_live" checked onchange="restartLogTimer()" style="width:15px;height:15px;">实时刷新
+        </label>
+        <button onclick="loadLogs()">刷新</button>
+        <a href="/logs.txt" target="_blank" style="text-decoration:none;"><button>原始日志</button></a>
+      </div>
+      <pre class="log" id="logs_pre">加载中…</pre>
+    </div>
+  </section>
+
+  <section class="view" id="view-about">
+    <div class="panel">
+      <h2>QookiX Launcher 翻译缓存系统 <span class="sub">自托管 Mod 翻译缓存服务</span></h2>
+      <div class="hint">
+        客户端报出 mod，服务端取原文、翻成中文并保存结果，同一个 mod 只翻一次。内容源：Modrinth。
+      </div>
+      <div class="about-meta">
+        <div class="hint">作者 ZhaYi ｜ 客户端 QookiX Launcher ｜ MIT License</div>
+        <a class="repo" href="https://github.com/ZhaYi-Miao/Qookix-Translate-Platform" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          QookiX-Translate-Platform</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>视图</h2>
+      <table>
+        <tbody>
+          <tr><td style="width:104px;">概览</td><td>请求、命中率、模型用量</td></tr>
+          <tr><td>后台任务</td><td>预热、更新检测、进度与槽位</td></tr>
+          <tr><td>模型与配置</td><td>模型、链路、鉴权开关、AI 管家</td></tr>
+          <tr><td>缓存浏览</td><td>搜索缓存、对照原文</td></tr>
+          <tr><td>反馈审核</td><td>用户反馈：重译 / 已处理 / 忽略</td></tr>
+          <tr><td>运行日志</td><td>按模型与关键词查日志</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>CurseForge</h2>
+      <div class="hint">未实现：它的 API 条款不允许缓存返回的数据。</div>
+    </div>
+  </section>
+
+</main>
+</div>

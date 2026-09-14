@@ -1,0 +1,10 @@
+# 源码与页面统一用 LF（与服务器上部署的文件一致，避免 SCP/校验出现换行差异）
+* text=auto eol=lf
+
+# Windows 侧脚本保留 CRLF
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+
+# 二进制
+*.exe binary
+*.db binary

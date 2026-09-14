@@ -1,0 +1,2189 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QookiX Launcher 翻译缓存系统</title>
+<link rel="icon" type="image/png" href="/logo.png">
+<link rel="apple-touch-icon" href="/logo.png">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.5/dist/purify.min.js"></script>
+<style>
+  :root {
+    --bg:#f5f6f8; --panel:#fff; --panel-2:#fafbfc; --border:#e3e6ea; --border-2:#eef1f4;
+    --text:#1f2328; --text-2:#3c4149; --muted:#656d76; --faint:#8b949e;
+    --accent:#2563eb; --accent-2:#1d4ed8; --accent-soft:#eef2ff;
+    --good:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+    --sidebar:#fff; --nav-hover:#f3f4f6; --chart-grid:#eef1f4;
+    --code-bg:#f6f8fa; --code-fg:#24292f; --shadow:none;
+  }
+  [data-theme="dark"] {
+    --bg:#0f1115; --panel:#15181d; --panel-2:#1a1e24; --border:#2b3038; --border-2:#22262d;
+    --text:#e6edf3; --text-2:#c9d1d9; --muted:#8b949e; --faint:#6e7681;
+    --accent:#58a6ff; --accent-2:#79b8ff; --accent-soft:#1b2330;
+    --good:#3fb950; --warn:#d29922; --bad:#f85149;
+    --sidebar:#12151a; --nav-hover:#1c2027; --chart-grid:#262b33;
+    --code-bg:#0d1117; --code-fg:#c9d1d9; --shadow:none;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.5;font-size:14px}
+  .layout{display:flex;min-height:100vh}
+  .sidebar{width:196px;flex:0 0 196px;background:var(--sidebar);border-right:1px solid var(--border);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;padding:14px 10px}
+  .logo{display:flex;align-items:center;gap:8px;padding:2px 8px 14px}
+  .logo .mark{width:26px;height:26px;border-radius:6px;display:block;flex:0 0 26px;object-fit:contain}
+  .logo .name{font-size:13.5px;font-weight:600;letter-spacing:.01em}
+  .logo .sub{display:block;font-size:11px;color:var(--faint);font-weight:400;margin-top:1px}
+  nav{display:flex;flex-direction:column;gap:1px;margin-top:6px}
+  nav a{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:5px;color:var(--muted);text-decoration:none;font-size:13px;font-weight:500;transition:background .12s,color .12s;border-left:2px solid transparent}
+  nav a svg{width:15px;height:15px;flex:0 0 15px;opacity:.85}
+  nav a:hover{background:var(--nav-hover);color:var(--text)}
+  nav a.active{background:var(--nav-hover);color:var(--text);font-weight:600;border-left-color:var(--accent)}
+  nav a.active svg{opacity:1;color:var(--accent)}
+  .sidebar .foot{margin-top:auto;padding:8px 4px;display:flex;flex-direction:column;gap:6px}
+  .sidebar .foot .hint{font-size:11px;color:var(--faint);line-height:1.5}
+  .main{flex:1;min-width:0;padding:16px 22px 40px}
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+  .topbar h1{font-size:17px;font-weight:600;letter-spacing:-.01em}
+  .topbar .updated{font-size:12px;color:var(--muted);margin-top:2px}
+  .topbar-left,.toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .view{display:none}
+  .view.active{display:block}
+  @media(max-width:920px){
+    .sidebar{width:52px;flex-basis:52px;padding:10px 6px}
+    .logo .name,.logo .sub,nav a .lbl,.sidebar .foot{display:none}
+    nav a{justify-content:center;padding:8px;border-left-width:0}
+    .main{padding:12px 12px 40px}
+  }
+  button{padding:5px 11px;border:1px solid var(--border);background:var(--panel);color:var(--text);border-radius:6px;cursor:pointer;font-size:12.5px;font-weight:500;transition:background .12s,border-color .12s;font-family:inherit}
+  button:hover{background:var(--panel-2);border-color:var(--faint)}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  button.primary:hover{background:var(--accent-2);border-color:var(--accent-2)}
+  button.danger{background:transparent;color:var(--bad);border-color:var(--border)}
+  button.danger:hover{background:var(--bad);color:#fff;border-color:var(--bad)}
+  button.ghost{background:transparent;border:none;color:var(--muted);padding:2px 5px}
+  button.ghost:hover{background:var(--nav-hover);color:var(--text)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.sm{padding:3px 8px;font-size:12px}
+  input[type="text"],input[type="password"],input[type="number"]{width:100%;padding:6px 9px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;background:var(--panel);color:var(--text);font-family:inherit}
+  input[type="text"],input[type="password"]{font-family:Menlo,Consolas,monospace}
+  input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+  select{padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;background:var(--panel);color:var(--text);font-family:inherit}
+  label{font-size:12.5px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:1px;margin-bottom:14px;background:var(--border);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+  .metric{background:var(--panel);padding:12px 14px}
+  .metric .label{font-size:12px;color:var(--muted);font-weight:400;margin-bottom:2px}
+  .metric .value{font-size:21px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .metric .value.good{color:var(--good)}.metric .value.warn{color:var(--warn)}.metric .value.bad{color:var(--bad)}
+  .metric .value.small{font-size:16px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:12px}
+  .panel h2{font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+  .panel h2 .sub{font-size:11.5px;color:var(--faint);font-weight:400}
+  .panel h2 .sub a{color:var(--accent);text-decoration:none}
+  .panel a{color:var(--accent);text-decoration:none}
+  .panel a:hover{text-decoration:underline}
+  .about-meta{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;padding-top:11px;border-top:1px solid var(--border-2)}
+  .about-meta .hint{font-size:11.5px;color:var(--faint)}
+  a.repo{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--accent);text-decoration:none;padding:3px 9px;border:1px solid var(--border);border-radius:5px;background:var(--panel-2)}
+  a.repo:hover{text-decoration:none;border-color:var(--accent);background:var(--accent-soft)}
+  a.repo svg{width:13px;height:13px;flex:0 0 13px;fill:currentColor;opacity:.9}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  @media(max-width:980px){.grid-2{grid-template-columns:1fr}}
+  canvas{max-height:230px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--border-2)}
+  th{background:var(--panel-2);color:var(--muted);font-weight:500;font-size:11.5px;white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--panel-2)}
+  .empty{color:var(--faint);font-style:normal;text-align:center;padding:16px;font-size:12.5px}
+  .mono{font-family:Menlo,Consolas,monospace;font-size:12px}
+  .breaker-banner{padding:8px 12px;border-radius:6px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:500;border:1px solid var(--border);border-left-width:3px;flex-wrap:wrap;gap:6px;background:var(--panel)}
+  .breaker-banner.ok{border-left-color:var(--good);color:var(--text-2)}
+  .breaker-banner.open{border-left-color:var(--bad);color:var(--bad)}
+  .breaker-banner.warn{border-left-color:var(--warn);color:var(--warn)}
+  .breaker-banner .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:7px;vertical-align:middle;background:currentColor}
+  .breaker-banner.open .dot{animation:pulse 1.6s infinite}
+  .breaker-banner .details{font-size:12px;font-weight:400;color:var(--muted)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .worker-toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  .worker-toolbar label{display:flex;align-items:center;gap:7px;cursor:pointer}
+  .worker-toolbar input[type="checkbox"]{width:15px;height:15px;accent-color:var(--accent)}
+  .hint{font-size:12px;color:var(--muted)}
+  /* 实时槽位：一个方块 = 一个并发槽位；在飞=实心，等名额=斜纹 */
+  .live-row{display:grid;grid-template-columns:104px 1fr;gap:10px;align-items:start;padding:8px 0;border-top:1px solid var(--border)}
+  .live-row:first-child{border-top:0}
+  .live-name{font-size:12.5px;font-weight:600;color:var(--text-2)}
+  .live-name .sub{display:block;font-size:11px;color:var(--faint);font-weight:400;margin-top:1px}
+  .slots{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:5px}
+  .sl{width:14px;height:14px;border-radius:3px;background:var(--panel-2);border:1px solid var(--border);display:inline-block}
+  .sl.b{background:var(--accent);border-color:var(--accent)}
+  .sl.w{background:repeating-linear-gradient(45deg,var(--panel-2),var(--panel-2) 3px,var(--muted) 3px,var(--muted) 5px)}
+  .live-tags{display:flex;gap:6px;flex-wrap:wrap}
+  .live-tag{font-size:11px;padding:1px 6px;border-radius:3px;background:var(--panel-2);border:1px solid var(--border);color:var(--text-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .live-tag.warn{background:rgba(234,88,12,.12);color:#c2410c;border-color:transparent}
+  .live-tag.bad{background:rgba(220,38,38,.12);color:var(--bad);border-color:transparent}
+  .live-tag.ok{background:rgba(26,127,55,.12);color:var(--good);border-color:transparent}
+  .live-tag.idle{background:transparent;color:var(--faint)}
+  .progress-bar-bg{width:100%;height:14px;background:var(--panel-2);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin:8px 0}
+  .progress-bar-fill{height:100%;background:var(--accent);transition:width .3s;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600}
+  .speed-line{display:flex;gap:18px;flex-wrap:wrap;align-items:baseline;margin-top:6px;font-size:12.5px;color:var(--muted)}
+  .speed-line strong{font-size:14px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
+  .speed-line .src{font-size:11.5px;color:var(--faint)}
+  .worker-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;margin-top:10px;background:var(--border);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+  .worker-stat{padding:9px 12px;background:var(--panel)}
+  .worker-stat .lbl{font-size:11.5px;color:var(--muted)}
+  .worker-stat .val{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+  .running-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);margin-right:6px;animation:pulse 1.6s infinite}
+  pre.log,#logs_pre,#worker_recent{max-height:520px;overflow:auto;background:var(--code-bg);color:var(--code-fg);font-family:Menlo,Consolas,monospace;font-size:12px;padding:12px;border:1px solid var(--border);border-radius:6px;line-height:1.65;margin:0;white-space:pre-wrap;word-break:break-all}
+  #worker_recent{max-height:220px}
+  .lg-bad{color:#cf222e}
+  .lg-warn{color:#9a6700}
+  .lg-ok{color:#1a7f37}
+  .lg-dim{color:var(--faint)}
+  [data-theme="dark"] .lg-bad{color:#ff7b72}
+  [data-theme="dark"] .lg-warn{color:#e3b341}
+  [data-theme="dark"] .lg-ok{color:#7ee787}
+  .provider-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:12px}
+  .provider-card{border:1px solid var(--border);border-radius:6px;padding:12px;background:var(--panel)}
+  .provider-card .pc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px}
+  .provider-card .pc-name-input{flex:1 1 110px;min-width:0;font-weight:600;font-size:13px;padding:4px 7px}
+  .provider-card .pc-actions{display:flex;gap:4px;align-items:center}
+  .provider-card .pc-field{display:grid;grid-template-columns:84px 1fr;gap:5px 9px;align-items:center;margin-bottom:7px}
+  .provider-card .pc-field label{font-size:11.5px;color:var(--muted);text-align:right}
+  .provider-card .pc-model-list{display:flex;flex-direction:column;gap:5px}
+  .provider-card .pc-model-row{display:flex;gap:5px;align-items:center}
+  .provider-card .pc-model-row input{flex:1 1 auto;min-width:0}
+  .type-tag{font-size:10.5px;padding:1px 6px;border-radius:3px;font-weight:600;letter-spacing:.02em}
+  .type-tag.openai{background:var(--accent-soft);color:var(--accent)}
+  .type-tag.gemini{background:rgba(139,92,246,.12);color:#7c3aed}
+  .key-badge{font-size:11px;color:var(--good)}
+  .chain-list{display:flex;flex-direction:column;gap:6px}
+  .chain-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:7px 9px;background:var(--panel-2);border:1px solid var(--border);border-radius:6px}
+  .chain-row .cf-order{flex:0 0 18px;font-weight:600;color:var(--faint);text-align:center;font-size:12px}
+  .chain-row .cf-ctrl{flex:0 0 auto;display:flex;gap:1px;align-items:center;margin-left:auto}
+  .chain-row label{font-size:10.5px;color:var(--faint);display:block;margin-bottom:1px}
+  .chain-row .cf-field{min-width:120px}
+  .chain-row .cf-provider{flex:1 1 140px}
+  .chain-row .cf-model{flex:2 1 190px}
+  .chain-row .cf-limit,.chain-row .cf-outtok{flex:1 1 120px}
+  .chain-row .cf-share{flex:0 1 100px}
+  .chain-row .cf-rpm{flex:0 1 90px}
+  .chain-row .cf-cool{flex:0 1 110px}
+  .cf-actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .preheat-box{margin-top:10px;border:1px solid var(--border);border-radius:6px;padding:2px 10px}
+  .preheat-box:empty{display:none}
+  .preheat-row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding:7px 0;border-top:1px solid var(--border)}
+  .preheat-row:first-child{border-top:none}
+  .preheat-row label{display:flex;align-items:center;gap:6px;min-width:118px}
+  #config_result{font-size:12.5px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .row #q{flex:1;min-width:200px}
+  .preview{color:var(--muted);max-width:420px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .tag{display:inline-block;padding:0 6px;border-radius:3px;font-size:11px;font-weight:600}
+  .tag.desc{background:var(--accent-soft);color:var(--accent)}
+  .tag.body{background:rgba(26,127,55,.12);color:var(--good)}
+  .tag.src-mr{background:var(--accent-soft);color:var(--accent);font-weight:500}
+  .badge{display:inline-block;min-width:16px;padding:0 5px;margin-left:auto;border-radius:8px;background:var(--bad);color:#fff;font-size:10.5px;font-weight:600;line-height:16px;text-align:center}
+  .fb-feedback{max-width:300px;font-size:12px;color:var(--text-2);white-space:pre-wrap;word-break:break-word}
+  .fb-feedback em{color:var(--faint);font-style:normal}
+  .fb-actions{white-space:nowrap;text-align:right}
+  .fb-actions button{margin-left:3px}
+  .st{border-radius:3px;padding:1px 6px;font-size:11px;font-weight:600;white-space:nowrap}
+  .st.pending{background:rgba(154,103,0,.12);color:var(--warn)}
+  .st.retranslating{background:var(--accent-soft);color:var(--accent)}
+  .st.done{background:rgba(26,127,55,.12);color:var(--good)}
+  .st.failed{background:rgba(207,34,46,.12);color:var(--bad)}
+  .st.ignored{background:var(--panel-2);color:var(--faint);border:1px solid var(--border)}
+  .fb-cache{font-size:11.5px;color:var(--faint);white-space:nowrap}
+  .fb-cache b{color:var(--good);font-weight:600}
+  .fb-select{width:15px;height:15px;accent-color:var(--accent)}
+  .auth-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(252px,1fr));gap:6px}
+  .auth-item{display:flex;align-items:center;gap:8px;padding:5px 9px;border:1px solid var(--border);border-radius:5px;cursor:pointer;font-size:12px}
+  .auth-item:hover{background:var(--panel-2)}
+  .auth-item span{display:flex;flex-direction:column;min-width:0}
+  .auth-item b{font-family:Menlo,Consolas,monospace;font-size:11.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis}
+  .auth-item em{font-style:normal;color:var(--faint);font-size:11px}
+  .auth-item input{width:15px;height:15px;accent-color:var(--accent);flex:0 0 15px}
+  .pager{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:12px}
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:1000px){.detail-grid{grid-template-columns:1fr}}
+  .col{border:1px solid var(--border);border-radius:6px;overflow:hidden;display:flex;flex-direction:column}
+  .col.active{border-color:var(--accent)}
+  .colhead{padding:7px 12px;background:var(--panel-2);border-bottom:1px solid var(--border);font-size:12.5px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+  .colhead .sub{font-size:11.5px;color:var(--faint);font-weight:400}
+  .md{padding:14px;overflow:auto;max-height:600px;font-size:13.5px;line-height:1.75;word-break:break-word}
+  .md.raw{white-space:pre-wrap;font-family:Menlo,Consolas,monospace;font-size:12px}
+  .md h1,.md h2,.md h3,.md h4{margin:14px 0 7px;font-weight:600;line-height:1.35}
+  .md h1{font-size:19px}.md h2{font-size:17px}.md h3{font-size:15px}.md h4{font-size:13.5px}
+  .md p{margin:9px 0}
+  .md ul,.md ol{margin:9px 0 9px 20px}
+  .md li{margin:3px 0}
+  .md a{color:var(--accent)}
+  .md img{max-width:100%;height:auto;border-radius:4px;margin:8px 0}
+  .md code{background:var(--panel-2);border:1px solid var(--border);padding:1px 4px;border-radius:3px;font-family:Menlo,Consolas,monospace;font-size:12px}
+  .md pre{background:var(--panel-2);border:1px solid var(--border);border-radius:6px;padding:11px;overflow:auto;margin:9px 0}
+  .md pre code{background:none;border:none;padding:0}
+  .md blockquote{border-left:3px solid var(--border);padding-left:11px;color:var(--muted);margin:9px 0}
+  .md hr{border:none;border-top:1px solid var(--border);margin:13px 0}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="logo">
+    <img class="mark" src="/logo.png" alt="QookiX" width="26" height="26">
+    <div class="name">QookiX Launcher<span class="sub">翻译缓存系统</span></div>
+  </div>
+  <nav>
+    <a href="#/overview" id="nav-overview">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      <span class="lbl">概览</span></a>
+    <a href="#/worker" id="nav-worker">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2 4.5 12.5H11l-1 9.5L19.5 11H13l1-9z"/></svg>
+      <span class="lbl">后台任务</span></a>
+    <a href="#/models" id="nav-models">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+      <span class="lbl">模型与配置</span></a>
+    <a href="#/cache" id="nav-cache">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></svg>
+      <span class="lbl">缓存浏览</span></a>
+    <a href="#/feedback" id="nav-feedback">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 4h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 13h6M9 17h4"/></svg>
+      <span class="lbl">反馈审核</span><span class="badge" id="fb_badge" style="display:none"></span></a>
+    <a href="#/logs" id="nav-logs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>
+      <span class="lbl">运行日志</span></a>
+    <a href="#/about" id="nav-about">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>
+      <span class="lbl">关于</span></a>
+  </nav>
+  <div class="foot">
+    <button id="themeBtn" onclick="toggleTheme()" style="width:100%;">暗色模式</button>
+    <div class="hint">Powered By ZhaYi</div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div>
+      <h1 id="view_title">概览</h1>
+      <div class="updated" id="updated">加载中…</div>
+    </div>
+    <div class="toolbar">
+      <select id="stat_range" onchange="refresh()" title="统计区间（数据永久保留，不再按天清空）" style="width:112px;">
+        <option value="today">今天</option>
+        <option value="yesterday">昨天</option>
+        <option value="week">近一周</option>
+        <option value="month">近一月</option>
+        <option value="all">全部</option>
+      </select>
+      <button onclick="refreshAll()">立即刷新</button>
+      <button class="primary" id="autoBtn" onclick="toggleAuto()">自动刷新: 开</button>
+    </div>
+  </div>
+
+  <section class="view active" id="view-overview">
+    <div class="breaker-banner ok" id="breaker_banner">
+      <div><span class="dot"></span><span id="breaker_text">模型熔断器：正常</span></div>
+      <div class="details" id="breaker_details"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Worker 状态 <span class="sub" id="ov_worker_status">—</span></h2>
+      <div class="speed-line" style="margin-top:0;">
+        <span>进度：<strong id="ov_worker_progress">—</strong></span>
+        <span>翻译速度：<strong id="ov_worker_speed">—</strong></span>
+        <span>预计剩余：<strong id="ov_worker_eta">—</strong></span>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="metric"><div class="label">总请求数</div><div class="value" id="m_total">—</div></div>
+      <div class="metric"><div class="label">缓存命中率</div><div class="value" id="m_hitrate">—</div></div>
+      <div class="metric"><div class="label">LLM 成功调用</div><div class="value" id="m_llm_ok">—</div></div>
+      <div class="metric"><div class="label">LLM 失败调用</div><div class="value" id="m_llm_failed">—</div></div>
+      <div class="metric"><div class="label">限流触发</div><div class="value" id="m_ratelimit">—</div></div>
+      <div class="metric"><div class="label">平均延迟（全部模型）</div><div class="value small" id="m_llmlatency">—</div></div>
+      <div class="metric"><div class="label">带正文请求</div><div class="value" id="m_withbody">—</div></div>
+      <div class="metric"><div class="label">不带正文请求</div><div class="value" id="m_nobody">—</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel"><h2>请求分布</h2><canvas id="chart_requests"></canvas></div>
+      <div class="panel"><h2>缓存命中 <span class="sub" id="hitrate_sub"></span></h2><canvas id="chart_cache"></canvas></div>
+    </div>
+    <div class="grid-2">
+      <div class="panel"><h2>LLM 调用分布（按模型）</h2><canvas id="chart_llm"></canvas></div>
+      <div class="panel"><h2>反馈分布</h2><canvas id="chart_feedback"></canvas></div>
+    </div>
+    <div class="panel"><h2>热门 Mod <span class="sub" id="mods_count"></span></h2><canvas id="chart_mods" style="max-height:340px;"></canvas></div>
+
+    <div class="grid-2">
+      <div class="panel"><h2>描述 / 正文 LLM 调用</h2><table id="t_kind_llm"></table></div>
+      <div class="panel"><h2>描述 / 正文 缓存</h2><table id="t_kind_cache"></table></div>
+    </div>
+    <div class="grid-2">
+      <div class="panel"><h2>请求详情</h2><table id="t_requests"></table></div>
+      <div class="panel"><h2>LLM 与 Modrinth</h2><table id="t_llm"></table></div>
+    </div>
+    <div class="grid-2">
+      <div class="panel"><h2>stale 反馈状态</h2><table id="t_stale"></table></div>
+      <div class="panel"><h2>quality 反馈类型</h2><table id="t_quality"></table></div>
+    </div>
+    <div class="panel"><h2>活跃 IP <span class="sub" id="ips_count"></span></h2><div id="ips_wrap"></div></div>
+  </section>
+
+  <section class="view" id="view-worker">
+    <div class="panel">
+      <h2>实时槽位 <span class="sub" id="live_sub">—</span>
+        <label class="hint" style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:400;">
+          <input type="checkbox" id="live_auto" checked style="accent-color:var(--accent);"> 自动刷新（2 秒）
+        </label>
+      </h2>
+      <div id="live_wrap"><div class="hint">加载中…</div></div>
+      <div class="hint" style="margin-top:8px;">
+        实心 = 在调上游，空白 = 空闲，斜纹 = 在等每分钟名额。<b>等名额不占槽位</b>，所以会有"槽位空着却在排队"。
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Worker 后台任务 <span class="sub" id="worker_status_text">空闲</span></h2>
+      <div class="worker-toolbar">
+        <label><input type="checkbox" id="worker_toggle" onchange="toggleWorker()"><span>启用 Worker</span></label>
+        <label title="开启后 Worker 在翻译描述的同时缓存正文。正文较长（截断后最长 12000 字符、分块翻译），会明显增加模型调用次数与耗时。">
+          <input type="checkbox" id="worker_body" onchange="toggleWorkerBody()"><span>同时缓存正文</span></label>
+        <button onclick="startWorker('preheat')" id="btn_preheat" title="按下面勾选的来源逐个跑一批">预热</button>
+        <button onclick="startWorker('refresh')" id="btn_refresh">检测更新</button>
+        <button class="danger" onclick="stopWorker()" id="btn_stop" disabled>停止</button>
+      </div>
+      <div class="worker-toolbar" style="margin-top:-6px;">
+        <span class="hint">自动并发: <strong id="worker_parallelism">—</strong>（= 各 Provider 并发之和，并行翻译）</span>
+      </div>
+      <div id="preheat_sources" class="preheat-box"></div>
+      <div id="worker_progress_wrap" style="display:none;">
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="worker_progress_fill">0%</div></div>
+        <div class="hint"><span id="worker_progress_text">—</span></div>
+        <div class="speed-line">
+          <span>翻译速度：<strong id="worker_speed">计算中…</strong></span>
+          <span>已用时：<strong id="worker_elapsed">—</strong></span>
+          <span>预计剩余：<strong id="worker_eta">计算中…</strong></span>
+          <span class="src" id="worker_speed_src"></span>
+        </div>
+      </div>
+      <div class="worker-stat-grid">
+        <div class="worker-stat"><div class="lbl">当前任务成功</div><div class="val" id="worker_ok" style="color:var(--good);">0</div></div>
+        <div class="worker-stat"><div class="lbl">当前任务失败</div><div class="val" id="worker_fail" style="color:var(--bad);">0</div></div>
+        <div class="worker-stat"><div class="lbl">今日成功</div><div class="val" id="worker_today_ok">0</div></div>
+        <div class="worker-stat"><div class="lbl">今日失败</div><div class="val" id="worker_today_fail">0</div></div>
+        <div class="worker-stat"><div class="lbl">上次运行</div><div class="val" id="worker_last_run" style="font-size:14px;">—</div></div>
+      </div>
+      <div id="worker_recent_wrap" style="display:none;margin-top:16px;">
+        <div class="hint" style="margin-bottom:6px;">最近处理（最多 50 条）</div>
+        <pre id="worker_recent"></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-models">
+    <div class="panel">
+      <h2>接口鉴权 <span class="sub">逐接口控制是否需要账号密码，保存后立即生效</span>
+        <span class="toolbar">
+          <button class="sm" onclick="authSetClientPublic()">恢复默认（客户端公开）</button>
+          <button class="sm" onclick="authSetAllRequired()">全部需要鉴权</button>
+        </span></h2>
+      <div class="hint" style="margin-bottom:9px;">⚠ 给客户端接口（/translate/*、/feedback/*、/health）打开鉴权后，模组用户会全部失败——除非客户端也带上账号密码。
+        静态页、/logo.png、/logs.txt 由 nginx 固定鉴权，不在此列表。</div>
+      <div class="auth-grid" id="auth_grid"></div>
+    </div>
+    <div class="panel">
+      <h2><span id="model_usage_title">模型用量与熔断（今天）</span> <span class="sub">预算按 Worker 逐模型每日上限</span></h2>
+      <table id="t_model_usage"><tbody><tr><td class="empty">加载中…</td></tr></tbody></table>
+    </div>
+    <div class="panel">
+      <h2>AI 管家 <span class="sub">让一个模型读脱敏快照给运维建议（只出建议，不改配置）</span></h2>
+      <div class="cf-actions">
+        <label class="hint" style="display:flex;align-items:center;gap:6px;">管家模型
+          <select id="advisor_provider" style="width:140px;padding:4px;"></select>
+          <input type="text" id="advisor_model" placeholder="模型名，如 your-model-name" style="width:220px;padding:4px;">
+        </label>
+        <label class="hint" style="display:flex;align-items:center;gap:6px;" title="管家看到的窗口统计都按这个长度算，并自动附上一个等长窗口做趋势对比。免费账号排队白天夜里差别大，建议 10~15 分钟。">观察窗
+          <input type="number" id="advisor_window" min="1" max="120" step="1" style="width:70px;padding:4px;"> 分钟
+        </label>
+        <button class="sm" onclick="advisorSnapshot()" title="只生成并显示脱敏快照，不会发给任何模型">看快照</button>
+        <button class="primary sm" onclick="advisorAsk()" title="把快照发给上面选的模型，让它给建议">问管家</button>
+        <button class="sm" onclick="advisorLast()">看上次建议</button>
+        <span id="advisor_state" class="hint"></span>
+      </div>
+      <div class="hint" style="margin-top:6px;">
+        快照含账号/模型/并发/RPM/延迟/成功率/错误分类 + 脱敏错误样本；不含 Key、Base URL、服务器信息、正文、用户反馈。改完模型要「保存配置」。
+      </div>
+      <div id="advisor_advice" style="display:none;margin-top:10px;"></div>
+      <pre id="advisor_raw" style="display:none;max-height:340px;overflow:auto;margin-top:10px;"></pre>
+    </div>
+    <div class="panel">
+      <h2>Provider 供应商 <span class="sub" id="providers_count"></span>
+        <button class="primary sm" onclick="addProvider()">＋ 添加 Provider</button></h2>
+      <div class="provider-grid" id="providers_grid"></div>
+    </div>
+    <div class="panel">
+      <h2>Fallback 链路（从上到下逐条尝试，可跨 Provider 混排） <span class="sub" id="chain_count"></span>
+        <button class="sm" onclick="addChainStep()">＋ 添加模型</button></h2>
+      <div class="chain-list" id="chain_list"></div>
+      <div class="cf-actions">
+        <label class="hint" style="display:flex;align-items:center;gap:6px;">熔断阈值（连续失败次数）
+          <input type="number" id="cfg_breaker_threshold" min="1" style="width:70px;padding:4px;"></label>
+        <label class="hint" style="display:flex;align-items:center;gap:6px;">熔断时长（分钟）
+          <input type="number" id="cfg_breaker_duration" min="1" style="width:70px;padding:4px;"></label>
+        <label class="hint" style="display:flex;align-items:center;gap:6px;" title="正文按此字符数切块并行翻译。调大=每次请求更长、调用次数更少；调小=切得更碎、并行度更高但调用次数更多。允许 200-8000。">
+          正文分块字符数 <input type="number" id="cfg_body_chunk" min="200" max="8000" style="width:80px;padding:4px;"></label>
+        <button class="primary" onclick="saveConfig()">保存配置</button>
+        <button onclick="testConfigAll()" title="按面板当前填写的内容测试，无需先保存">测试整条链</button>
+        <button class="danger" onclick="resetConfig()">恢复默认</button>
+        <span id="config_result"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-cache">
+    <div class="panel">
+      <h2>搜索 <span class="sub" id="counts"></span></h2>
+      <div class="row">
+        <input type="text" id="q" placeholder="输入 mod id 或键名关键词（部分匹配即可），回车搜索">
+        <select id="cache_kind" onchange="cacheSearch()">
+          <option value="all">全部类型</option>
+          <option value="desc">仅描述</option>
+          <option value="body">仅正文</option>
+        </select>
+        <select id="cache_limit" onchange="cacheSearch()">
+          <option value="20">20 条/页</option>
+          <option value="50" selected>50 条/页</option>
+          <option value="100">100 条/页</option>
+          <option value="200">200 条/页</option>
+        </select>
+        <button class="primary" onclick="cacheSearch()">搜索</button>
+        <button onclick="cacheReset()">重置</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>缓存条目 <span class="sub" id="pageinfo"></span></h2>
+      <table id="t_list"><tbody><tr><td class="empty">加载中…</td></tr></tbody></table>
+      <div class="pager">
+        <button id="btn_prev" onclick="cachePrev()">上一页</button>
+        <span class="hint" id="page_label"></span>
+        <button id="btn_next" onclick="cacheNext()">下一页</button>
+      </div>
+    </div>
+    <div class="panel" id="detail_panel" style="display:none;">
+      <h2>译文详情 <span class="sub" id="detail_meta"></span>
+        <span class="toolbar">
+          <span class="hint" id="md_state"></span>
+          <button onclick="toggleRaw()" id="rawBtn">显示源码</button>
+          <button onclick="copyDetail()" id="copyBtn">复制全文</button>
+          <a id="project_link" href="#" target="_blank" rel="noopener" style="text-decoration:none;"><button>打开原站</button></a>
+        </span>
+      </h2>
+      <div class="detail-grid">
+        <div class="col" id="col_desc">
+          <div class="colhead"><span>描述</span><span class="sub" id="sub_desc"></span></div>
+          <div class="md" id="text_desc"></div>
+        </div>
+        <div class="col" id="col_body">
+          <div class="colhead"><span>正文</span><span class="sub" id="sub_body"></span></div>
+          <div class="md" id="text_body"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-feedback">
+    <div class="cards">
+      <div class="metric"><div class="label">待处理</div><div class="value warn" id="fb_n_pending">—</div></div>
+      <div class="metric"><div class="label">重新翻译中</div><div class="value small" id="fb_n_retranslating">—</div></div>
+      <div class="metric"><div class="label">重译失败</div><div class="value small bad" id="fb_n_failed">—</div></div>
+      <div class="metric"><div class="label">已处理</div><div class="value small good" id="fb_n_done">—</div></div>
+      <div class="metric"><div class="label">已忽略</div><div class="value small" id="fb_n_ignored">—</div></div>
+      <div class="metric"><div class="label">反馈总数</div><div class="value small" id="fb_n_total">—</div></div>
+    </div>
+    <div class="panel">
+      <h2>用户反馈审核 <span class="sub" id="fb_sub"></span></h2>
+      <div class="row" style="margin-bottom:10px;">
+        <select id="fb_status" onchange="fbReload()" style="width:138px;">
+          <option value="pending">待处理</option>
+          <option value="retranslating">重新翻译中</option>
+          <option value="failed">重译失败</option>
+          <option value="done">已处理</option>
+          <option value="ignored">已忽略</option>
+          <option value="all">全部</option>
+        </select>
+        <input type="text" id="fb_q" placeholder="按 mod id 搜索，回车生效" style="flex:1;min-width:170px;">
+        <select id="fb_limit" onchange="fbReload()" style="width:104px;">
+          <option value="20">20 条/页</option>
+          <option value="50">50 条/页</option>
+          <option value="100">100 条/页</option>
+        </select>
+        <button onclick="fbToggleSelectAll()" id="fb_selall">全选本页</button>
+        <button class="primary" onclick="fbBatch('done')">批量已处理</button>
+        <button onclick="fbBatch('ignored')">批量忽略</button>
+        <button onclick="fbReload()">刷新</button>
+      </div>
+      <table id="t_feedback"><tbody><tr><td class="empty">加载中…</td></tr></tbody></table>
+      <div class="pager">
+        <button id="fb_prev" onclick="fbPage(-1)">上一页</button>
+        <span class="hint" id="fb_pagelabel"></span>
+        <button id="fb_next" onclick="fbPage(1)">下一页</button>
+      </div>
+    </div>
+    <div class="panel" style="padding:11px 16px;">
+      <div class="hint">
+        重新翻译 = 清缓存后重翻（正文分块，几十秒）；成功变「已处理」，失败变「重译失败」，原因看日志里的 <span class="mono">[FEEDBACK]</span>。
+        「查看译文」跳到缓存浏览并展开对照。
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-logs">
+    <div class="panel">
+      <h2>按模型查看日志 <span class="sub" id="log_summary"></span></h2>
+      <div class="row" style="margin-bottom:10px;">
+        <select id="log_model" onchange="loadLogs()" style="width:232px;"></select>
+        <input type="text" id="log_q" placeholder="关键词过滤（mod id / failed / deadline …），回车生效" style="flex:1;min-width:180px;">
+        <select id="log_lines" onchange="loadLogs()" style="width:104px;">
+          <option value="200">200 行</option>
+          <option value="400" selected>400 行</option>
+          <option value="1000">1000 行</option>
+          <option value="2000">2000 行</option>
+        </select>
+        <label class="hint" style="display:flex;align-items:center;gap:6px;white-space:nowrap;">
+          <input type="checkbox" id="log_live" checked onchange="restartLogTimer()" style="width:15px;height:15px;">实时刷新
+        </label>
+        <button onclick="loadLogs()">刷新</button>
+        <a href="/logs.txt" target="_blank" style="text-decoration:none;"><button>原始日志</button></a>
+      </div>
+      <pre class="log" id="logs_pre">加载中…</pre>
+    </div>
+  </section>
+
+  <section class="view" id="view-about">
+    <div class="panel">
+      <h2>QookiX Launcher 翻译缓存系统 <span class="sub">自托管 Mod 翻译缓存服务</span></h2>
+      <div class="hint">
+        客户端报出 mod，服务端取原文、翻成中文并保存结果，同一个 mod 只翻一次。内容源：Modrinth。
+      </div>
+      <div class="about-meta">
+        <div class="hint">作者 ZhaYi ｜ 客户端 QookiX Launcher ｜ MIT License</div>
+        <a class="repo" href="https://github.com/ZhaYi-Miao/Qookix-Translate-Platform" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          QookiX-Translate-Platform</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>视图</h2>
+      <table>
+        <tbody>
+          <tr><td style="width:104px;">概览</td><td>请求、命中率、模型用量</td></tr>
+          <tr><td>后台任务</td><td>预热、更新检测、进度与槽位</td></tr>
+          <tr><td>模型与配置</td><td>模型、链路、鉴权开关、AI 管家</td></tr>
+          <tr><td>缓存浏览</td><td>搜索缓存、对照原文</td></tr>
+          <tr><td>反馈审核</td><td>用户反馈：重译 / 已处理 / 忽略</td></tr>
+          <tr><td>运行日志</td><td>按模型与关键词查日志</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>CurseForge</h2>
+      <div class="hint">未实现：它的 API 条款不允许缓存返回的数据。</div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<script>
+// ============== 路由（侧边栏） ==============
+const VIEWS = ['overview', 'worker', 'models', 'cache', 'feedback', 'logs', 'about'];
+const VIEW_TITLES = { overview: '概览', worker: '后台任务', models: '模型与配置', cache: '缓存浏览', feedback: '反馈审核', logs: '运行日志', about: '关于' };
+let activeView = 'overview';
+
+function currentRoute() {
+  const h = (location.hash || '').replace(/^#\/?/, '');
+  return VIEWS.includes(h) ? h : 'overview';
+}
+function showView(name) {
+  activeView = name;
+  for (const v of VIEWS) {
+    const sec = document.getElementById('view-' + v);
+    if (sec) sec.classList.toggle('active', v === name);
+    const nav = document.getElementById('nav-' + v);
+    if (nav) nav.classList.toggle('active', v === name);
+  }
+  const t = document.getElementById('view_title');
+  if (t) t.textContent = VIEW_TITLES[name] || name;
+  // 隐藏容器里的 canvas 尺寸为 0，切回来要重画一次
+  if (name === 'overview') refresh();
+  // 实时槽位：切进来立刻拉一次（否则会显示上一次离开时的旧状态）
+  if (name === 'worker') { refreshWorker(); loadLive(); }
+  if (name === 'worker') refreshWorker();
+  if (name === 'cache') loadCacheList();
+  if (name === 'feedback') fbLoad();
+  if (name === 'logs') refreshLogs();
+}
+window.addEventListener('hashchange', () => showView(currentRoute()));
+
+// ============== 主题 ==============
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  try { localStorage.setItem('trans_theme', t); } catch (e) {}
+  const b = document.getElementById('themeBtn');
+  if (b) b.textContent = t === 'dark' ? '亮色模式' : '暗色模式';
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  setTheme(cur);
+  if (activeView === 'overview') refresh();   // 图表网格色跟随主题
+}
+function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+// ============== 通用状态 ==============
+let autoRefresh = true;
+let statsTimer = null, logTimer = null, workerTimer = null, cacheTimer = null, fbTimer = null, liveTimer = null;
+const MASK = '********';
+let providers = [];  // {name,type,base_url,api_key,concurrent,timeout_sec,prevName}
+let chain = [];      // {provider,model,daily_limit,out_tok,share}
+const charts = { requests: null, cache: null, llm: null, feedback: null, mods: null };
+const palette = ['#2563eb', '#0d9488', '#d97706', '#dc2626', '#7c3aed', '#0284c7', '#db2777', '#65a30d', '#ea580c', '#4f46e5'];
+let lastModelStats = {};   // provider:model -> {calls,failed,avg_ms...}，日志页用来显示每个模型的今日状况
+
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function setMetric(id, value, level) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = value;
+  el.className = 'value' + (level ? ' ' + level : '');
+}
+function destroyChart(name) { if (charts[name]) { charts[name].destroy(); charts[name] = null; } }
+function showEmptyText(id, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const c = el.getContext('2d');
+  c.clearRect(0, 0, 9999, 9999);
+  c.font = '14px sans-serif';
+  c.fillStyle = cssVar('--faint') || '#9ca3af';
+  c.textAlign = 'center';
+  c.fillText(text, el.clientWidth / 2, 130);
+}
+function renderKV(el, obj) {
+  if (!el) return;
+  const keys = Object.keys(obj || {});
+  if (keys.length === 0) { el.innerHTML = '<tbody><tr><td class="empty">无数据</td></tr></tbody>'; return; }
+  let html = '<thead><tr><th>项</th><th>值</th></tr></thead><tbody>';
+  for (const k of keys) html += `<tr><td>${esc(k)}</td><td>${esc(obj[k])}</td></tr>`;
+  el.innerHTML = html + '</tbody>';
+}
+function renderList(el, arr) {
+  if (!el) return;
+  if (!arr || arr.length === 0) { el.innerHTML = '<div class="empty">无数据</div>'; return; }
+  const keys = Object.keys(arr[0]);
+  let html = '<table><thead><tr>' + keys.map(k => `<th>${esc(k)}</th>`).join('') + '</tr></thead><tbody>';
+  for (const item of arr) html += '<tr>' + keys.map(k => `<td>${esc(item[k])}</td>`).join('') + '</tr>';
+  el.innerHTML = html + '</tbody></table>';
+}
+function fmtTime(ts) { return (ts && ts > 0) ? new Date(ts * 1000).toLocaleString() : '—'; }
+function fmtRate(v) { return (v >= 10 ? v.toFixed(0) : v.toFixed(1)); }
+function fmtDur(sec) {
+  sec = Math.max(0, Math.round(sec));
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  if (h > 0) return h + ' 小时 ' + m + ' 分';
+  if (m > 0) return m + ' 分 ' + s + ' 秒';
+  return s + ' 秒';
+}
+
+// ============== 熔断横幅 ==============
+function renderBreaker(status, breakerStatus) {
+  const banner = document.getElementById('breaker_banner');
+  const text = document.getElementById('breaker_text');
+  const details = document.getElementById('breaker_details');
+  const openList = (breakerStatus || []).filter(b => b.circuit_open);
+  if (!status) { banner.className = 'breaker-banner ok'; text.textContent = '模型熔断器：无数据'; details.textContent = ''; return; }
+  if (openList.length > 0) {
+    banner.className = 'breaker-banner open';
+    details.textContent = openList.map(b => {
+      const until = b.open_until || 0;
+      if (!until) return b.key;
+      const sec = Math.max(0, until - Math.floor(Date.now() / 1000));
+      return `${b.key}(${Math.floor(sec / 60)}分${sec % 60}秒)`;
+    }).join('，');
+    text.textContent = `模型熔断器：${openList.length} 个模型熔断中`;
+  } else {
+    banner.className = 'breaker-banner ok';
+    text.textContent = '模型熔断器：正常';
+    details.textContent = '所有模型工作正常';
+  }
+}
+
+// ============== 图表 ==============
+function drawDoughnut(id, labels, data, name) {
+  destroyChart(name);
+  charts[name] = new Chart(document.getElementById(id).getContext('2d'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: palette.slice(0, labels.length), borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { boxWidth: 12, padding: 12, font: { size: 12 }, color: cssVar('--muted') } } } },
+  });
+}
+function drawBar(id, labels, data, name, horizontal) {
+  destroyChart(name);
+  const grid = cssVar('--chart-grid') || '#f3f4f6';
+  charts[name] = new Chart(document.getElementById(id).getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: palette[0], borderRadius: 6 }] },
+    options: { indexAxis: horizontal ? 'y' : 'x', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { grid: { display: false }, ticks: { font: { size: 11 }, color: cssVar('--muted') } },
+                y: { grid: { color: grid }, ticks: { font: { size: 11 }, color: cssVar('--muted') } } } },
+  });
+}
+
+// ============== /stats ==============
+async function refresh() {
+  try {
+    const sel = document.getElementById('stat_range');
+    const rng = (sel && sel.value) || 'today';
+    const r = await fetch('/stats?range=' + encodeURIComponent(rng), { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) { document.getElementById('updated').textContent = '错误: HTTP ' + r.status; return; }
+    const data = await r.json();
+    const rangeTxt = (data.range_label || '今天') +
+      (data.range_from && data.range_from !== data.range_to
+        ? `（${data.range_from} ~ ${data.range_to}，${data.days || 0} 天）`
+        : (data.range_from ? `（${data.range_from}）` : ''));
+    document.getElementById('updated').textContent =
+      '最后更新: ' + new Date().toLocaleTimeString() + ' · 统计区间: ' + rangeTxt;
+    const mut = document.getElementById('model_usage_title');
+    if (mut) mut.textContent = '模型用量与熔断（' + (data.range_label || '今天') + '）';
+
+    renderBreaker(data.breaker_overview, data.breaker_status);
+    renderModelUsage(data.breaker_status, data.model_stats);
+
+    const reqs = data.requests || {};
+    setMetric('m_total', reqs.total || 0);
+    const hitRateText = data.cache_hit_rate || 'N/A';
+    setMetric('m_hitrate', hitRateText, hitRateText === 'N/A' ? '' : (parseFloat(hitRateText) > 80 ? 'good' : 'warn'));
+
+    // 一律按 provider:model 聚合：同一个类型下往往挂了多个账号，不能按类型合并
+    const mstats = data.model_stats || {};
+    lastModelStats = mstats;
+    let okSum = 0, failSum = 0, callSum = 0, msWeighted = 0;
+    for (const f of Object.keys(mstats)) {
+      const s = mstats[f] || {};
+      const c = s.calls || 0, fa = s.failed || 0;
+      okSum += Math.max(0, c - fa);
+      failSum += fa;
+      callSum += c;
+      msWeighted += (s.avg_ms || 0) * c;
+    }
+    setMetric('m_llm_ok', okSum);
+    setMetric('m_llm_failed', failSum, failSum > 0 ? 'bad' : 'good');
+    const rl = data.rate_limit_hits || 0;
+    setMetric('m_ratelimit', rl, rl > 100 ? 'bad' : rl > 20 ? 'warn' : '');
+    setMetric('m_llmlatency', (callSum > 0 ? Math.round(msWeighted / callSum) : 0) + ' ms');
+
+    const pickBody = (ep, flag) => reqs[ep + (flag ? '_with_body' : '_no_body')] || 0;
+    setMetric('m_withbody', pickBody('translate_mod', true) + pickBody('translate_mods', true));
+    setMetric('m_nobody', pickBody('translate_mod', false) + pickBody('translate_mods', false));
+
+    const kl = data.kind_llm || {};
+    const cache = data.cache || {};
+    renderKV(document.getElementById('t_kind_llm'), {
+      '描述 调用次数': kl.desc_calls || 0, '描述 失败数': kl.desc_failed || 0, '描述 输入字符': kl.desc_chars || 0,
+      '正文 调用次数': kl.body_calls || 0, '正文 失败数': kl.body_failed || 0, '正文 输入字符': kl.body_chars || 0,
+    });
+    const descTotal = (cache.desc_hit || 0) + (cache.desc_miss || 0);
+    const bodyTotal = (cache.body_hit || 0) + (cache.body_miss || 0);
+    renderKV(document.getElementById('t_kind_cache'), {
+      '描述 命中': cache.desc_hit || 0, '描述 未命中': cache.desc_miss || 0,
+      '描述 命中率': descTotal > 0 ? ((cache.desc_hit / descTotal) * 100).toFixed(1) + '%' : 'N/A',
+      '正文 命中': cache.body_hit || 0, '正文 未命中': cache.body_miss || 0,
+      '正文 命中率': bodyTotal > 0 ? ((cache.body_hit / bodyTotal) * 100).toFixed(1) + '%' : 'N/A',
+    });
+
+    const reqKeys = Object.keys(reqs).filter(k => k !== 'total' && reqs[k] > 0);
+    if (reqKeys.length > 0) drawDoughnut('chart_requests', reqKeys.map(k => k + ': ' + reqs[k]), reqKeys.map(k => reqs[k]), 'requests');
+    else { destroyChart('requests'); showEmptyText('chart_requests', '暂无请求'); }
+
+    const cacheHit = cache.hit || 0, cacheMiss = cache.miss || 0;
+    document.getElementById('hitrate_sub').textContent = data.cache_hit_rate || '';
+    if (cacheHit + cacheMiss > 0) drawDoughnut('chart_cache', ['命中', '未命中'], [cacheHit, cacheMiss], 'cache');
+    else { destroyChart('cache'); showEmptyText('chart_cache', '暂无缓存数据'); }
+
+    // 按模型名称分布；Modrinth 调用/404/429 属于另一类数据，不混进这张图
+    const llmRows = Object.keys(mstats)
+      .map(f => ({ name: f, calls: (mstats[f] || {}).calls || 0, failed: (mstats[f] || {}).failed || 0 }))
+      .filter(x => x.calls > 0)
+      .sort((a, b) => b.calls - a.calls);
+    if (llmRows.length > 0) {
+      drawBar('chart_llm',
+        llmRows.map(x => x.name + (x.failed > 0 ? '（失败 ' + x.failed + '）' : '')),
+        llmRows.map(x => x.calls), 'llm');
+    } else { destroyChart('llm'); showEmptyText('chart_llm', '暂无 LLM 数据'); }
+
+    const fLabels = [], fValues = [];
+    for (const [k, v] of Object.entries(data.stale_feedback || {})) if (v > 0) { fLabels.push('stale:' + k); fValues.push(v); }
+    for (const [k, v] of Object.entries(data.quality_feedback || {})) if (v > 0) { fLabels.push('quality:' + k); fValues.push(v); }
+    if (fLabels.length > 0) drawBar('chart_feedback', fLabels, fValues, 'feedback');
+    else { destroyChart('feedback'); showEmptyText('chart_feedback', '暂无反馈数据'); }
+
+    const mods = data.top_mods || [];
+    document.getElementById('mods_count').textContent = mods.length + ' 个';
+    if (mods.length > 0) drawBar('chart_mods', mods.slice(0, 15).map(m => m.mod_id), mods.slice(0, 15).map(m => m.count), 'mods', true);
+    else { destroyChart('mods'); showEmptyText('chart_mods', '暂无 Mod 数据'); }
+
+    renderKV(document.getElementById('t_requests'), reqs);
+    const llm = data.llm || {};
+    renderKV(document.getElementById('t_llm'), {
+      openai_calls: llm.openai_calls || 0, openai_failed: llm.openai_failed || 0,
+      gemini_calls: llm.gemini_calls || 0, gemini_failed: llm.gemini_failed || 0,
+      modrinth_calls: llm.modrinth_calls || 0, modrinth_404: llm.modrinth_404 || 0, modrinth_429: llm.modrinth_429 || 0,
+      openai_avg_ms: data.openai_avg_ms || 0, gemini_avg_ms: data.gemini_avg_ms || 0,
+    });
+    renderKV(document.getElementById('t_stale'), data.stale_feedback);
+    renderKV(document.getElementById('t_quality'), data.quality_feedback);
+
+    const ips = data.top_ips || [];
+    document.getElementById('ips_count').textContent = ips.length + ' 个';
+    renderList(document.getElementById('ips_wrap'), ips);
+  } catch (e) {
+    document.getElementById('updated').textContent = '错误: ' + e.message;
+  }
+}
+
+// ============== 模型用量与熔断明细 ==============
+function renderModelUsage(breakerStatus, modelStats) {
+  const wrap = document.getElementById('t_model_usage');
+  if (!wrap) return;
+  modelStats = modelStats || {};
+  const breakerMap = {};
+  for (const b of (breakerStatus || [])) breakerMap[b.key] = b;
+
+  const rows = [];
+  chain.forEach((st, idx) => {
+    const stat = modelStats[st.provider + ':' + st.model];
+    rows.push({
+      idx: idx + 1, provider: st.provider, model: st.model,
+      calls: stat ? stat.calls : 0, failed: stat ? stat.failed : 0,
+      avg_ms: (stat && stat.avg_ms) || 0,
+      limit: (stat && stat.daily_limit) || st.daily_limit || 0,
+      breaker: breakerMap[st.provider + '/' + st.model],
+    });
+  });
+  for (const field of Object.keys(modelStats)) {
+    if (rows.some(r => r.provider + ':' + r.model === field)) continue;
+    const [pv, mo] = field.split(':');
+    if (!pv || !mo) continue;
+    rows.push({
+      idx: '—', provider: pv, model: mo,
+      calls: modelStats[field].calls, failed: modelStats[field].failed,
+      avg_ms: modelStats[field].avg_ms || 0,
+      limit: modelStats[field].daily_limit || 0,
+      breaker: breakerMap[field.replace(':', '/')],
+    });
+  }
+  if (rows.length === 0) { wrap.innerHTML = '<tbody><tr><td class="empty">无模型 / 配置尚未加载</td></tr></tbody>'; return; }
+
+  let html = '<thead><tr><th>#</th><th>Provider</th><th>Model</th><th>调用</th><th>失败</th><th>平均延迟</th><th>每日上限(Worker)</th><th>熔断</th></tr></thead><tbody>';
+  for (const r of rows) {
+    const b = r.breaker || {};
+    let brHtml;
+    if (b.circuit_open) {
+      const sec = Math.max(0, (b.open_until || 0) - Math.floor(Date.now() / 1000));
+      brHtml = `<span style="color:var(--bad);font-weight:600;">● 熔断 ${Math.floor(sec / 60)}分${sec % 60}秒</span>`;
+    } else if (b.fail_count) {
+      brHtml = `<span style="color:var(--warn);font-weight:600;">${b.fail_count} 连续失败</span>`;
+    } else {
+      brHtml = '<span style="color:var(--good);">−</span>';
+    }
+    const failedPct = r.calls > 0 ? Math.round(r.failed / Math.max(r.calls, 1) * 100) + '%' : '—';
+    const limitTxt = r.limit > 0 ? r.limit : '不限';
+    const over = r.limit > 0 && r.calls >= r.limit ? ' style="color:var(--bad);font-weight:600;"' : '';
+    html += `<tr>
+      <td class="mono">${r.idx}</td>
+      <td class="mono">${esc(r.provider)}</td>
+      <td class="mono">${esc(r.model)}</td>
+      <td>${r.calls}</td>
+      <td>${r.failed} (<span ${r.failed > 0 ? 'style="color:var(--bad);"' : ''}>${failedPct}</span>)</td>
+      <td>${r.avg_ms ? r.avg_ms + ' ms' : '—'}</td>
+      <td${over}>${limitTxt}</td>
+      <td>${brHtml}</td>
+    </tr>`;
+  }
+  wrap.innerHTML = html + '</tbody>';
+}
+
+// ============== 速度 / 剩余时间 ==============
+// 速度以后端口径为准：/worker/status 的 throughput（服务端每 10s 采样"累计已翻译字符数"算出的
+// 字符/分 + 个/分）。前端只在后端样本不足（服务刚起 / Redis 不可用）时用轮询差值兜底。
+let speedSamples = [];
+function fmtChars(n) {
+  n = Math.round(n || 0);
+  if (n >= 10000) return (n / 1000).toFixed(1) + 'k';
+  return n.toLocaleString('zh-CN');
+}
+function updateSpeed(p, total, current, tp) {
+  const now = Date.now() / 1000;
+  speedSamples.push({ t: now, current: current, ok: p.ok || 0 });
+  while (speedSamples.length > 2 && now - speedSamples[0].t > 180) speedSamples.shift();
+
+  document.getElementById('worker_elapsed').textContent = p.started_at ? fmtDur(now - p.started_at) : '—';
+
+  const first = speedSamples[0];
+  const dtLocal = first ? now - first.t : 0;
+  const enoughLocal = !!(first && dtLocal >= 20);
+  const localOK = enoughLocal ? ((p.ok || 0) - first.ok) / dtLocal * 60 : 0;      // 真翻成功的 mod/分
+  const localProc = enoughLocal ? (current - first.current) / dtLocal * 60 : 0;  // 处理速率（含跳过缓存）
+
+  const speedEl = document.getElementById('worker_speed');
+  const etaEl = document.getElementById('worker_eta');
+  const srcEl = document.getElementById('worker_speed_src');
+  const serverReady = !!(tp && tp.ready);
+  const remain = total - current;
+  // 剩余时间按"真翻成功的 mod/分"估：用处理速率会把跳过缓存也算进去，估得过于乐观
+  const modsPerMin = serverReady ? (tp.mods_per_min || 0) : localOK;
+  const eta = modsPerMin > 0.02 ? remain / modsPerMin * 60 : 0;
+
+  if (serverReady) {
+    speedEl.textContent = fmtChars(tp.chars_per_min) + ' 字符/分';
+    etaEl.textContent = eta > 0 ? fmtDur(eta) : '—';
+    srcEl.textContent = `（服务端 · 近 ${Math.round(tp.window_sec || 0)} 秒 ${fmtChars(tp.chars_per_min)} 字符/分、`
+      + `${fmtRate(tp.mods_per_min)} 个/分 · 今日累计 ${fmtChars(tp.chars_total)} 字符 / ${tp.mods_total} 个 mod）`;
+  } else if (enoughLocal && (localOK > 0.02 || localProc > 0.02)) {
+    speedEl.textContent = fmtRate(localOK) + ' 个/分';
+    etaEl.textContent = eta > 0 ? fmtDur(eta) : '—';
+    srcEl.textContent = `（后端样本累积中，暂用本页估算：近 ${Math.round(dtLocal)} 秒处理 ${fmtRate(localProc)} 个/分）`;
+  } else {
+    speedEl.textContent = enoughLocal ? '0' : '计算中…';
+    etaEl.textContent = '计算中…';
+    srcEl.textContent = '（后端每 10s 采样一次，约需运行 20 秒后才有速率）';
+  }
+
+  const ovP = document.getElementById('ov_worker_progress');
+  const ovS = document.getElementById('ov_worker_speed');
+  const ovE = document.getElementById('ov_worker_eta');
+  if (ovP) ovP.textContent = `${current}/${total}`;
+  if (ovS) ovS.textContent = serverReady ? (fmtChars(tp.chars_per_min) + ' 字符/分')
+    : (localOK > 0.02 ? fmtRate(localOK) + ' 个/分' : '—');
+  if (ovE) ovE.textContent = eta > 0 ? fmtDur(eta) : '—';
+}
+
+// ============== /live 实时槽位 ==============
+// 一个方块 = 一个并发槽位：实心=正在调用上游，空白=空闲，斜纹=在等每分钟名额。
+// 斜纹单独列出而不是占槽位，因为"等名额"发生在拿槽位之前 —— 这正是免费账号的排队真相。
+const LIVE_KIND = { desc: '描述', body: '正文', test: '测试', other: '其他' };
+function liveKindName(k) { return LIVE_KIND[k] || k || '—'; }
+
+async function loadLive() {
+  const wrap = document.getElementById('live_wrap');
+  if (!wrap) return;
+  try {
+    const r = await fetch('/live');
+    if (!r.ok) { wrap.innerHTML = '<div class="hint">读取失败：HTTP ' + r.status + '</div>'; return; }
+    renderLive(await r.json());
+  } catch (e) {
+    wrap.innerHTML = '<div class="hint">读取失败：' + esc(e.message) + '</div>';
+  }
+}
+
+function renderLive(d) {
+  const t = d.totals || {}, w = d.worker || {};
+  const sub = document.getElementById('live_sub');
+  if (sub) {
+    const parts = [d.now || ''];
+    if (t.inflight || t.waiting_rpm || t.waiting_slot) {
+      parts.push('在飞 ' + (t.inflight || 0), '等名额 ' + (t.waiting_rpm || 0), '等槽位 ' + (t.waiting_slot || 0));
+    } else {
+      parts.push('空闲');
+    }
+    if (w.running) parts.push('worker 运行中' + (w.phase ? '（' + esc(w.phase) + '）' : ''));
+    sub.textContent = parts.join(' · ');
+  }
+
+  const wrap = document.getElementById('live_wrap');
+  if (!wrap) return;
+  const lim = d.limits || {};
+  let html = (d.accounts || []).map(a => {
+    const conc = a.concurrent || 0, inflight = a.inflight || 0;
+    const rpmW = a.rpm_waiting ? a.rpm_waiting : null;
+    const slotW = a.slot_waiting ? a.slot_waiting : null;
+
+    let blocks = '';
+    for (let i = 0; i < conc; i++) blocks += (i < inflight) ? '<i class="sl b"></i>' : '<i class="sl"></i>';
+    const rpmN = rpmW ? rpmW.count : 0;
+    for (let i = 0; i < Math.min(rpmN, 10); i++) blocks += '<i class="sl w"></i>';
+    if (rpmN > 10) blocks += '<span class="live-tag warn">+' + (rpmN - 10) + ' 等名额</span>';
+
+    const tags = [];
+    (a.calls || []).forEach(c => {
+      tags.push('<span class="live-tag">' + esc(c.model) + ' · ' + liveKindName(c.kind) + ' ' + c.sec + 's</span>');
+    });
+    if (rpmW) tags.push('<span class="live-tag warn" title="' + esc(rpmW.note || '') + '">等每分钟名额 ' + rpmN + ' 个（最久 ' + rpmW.max_sec + 's）</span>');
+    if (slotW) tags.push('<span class="live-tag bad" title="' + esc(slotW.note || '') + '">等并发槽位 ' + slotW.count + ' 个（最久 ' + slotW.max_sec + 's）</span>');
+    if (a.rpm) tags.push('<span class="live-tag">名额 ' + a.rpm.tokens + '/' + a.rpm.limit + '/分</span>');
+    (a.cooling || []).forEach(c => tags.push('<span class="live-tag bad">冷却 ' + esc(c.model) + ' 还剩 ' + c.left_sec + 's</span>'));
+    (a.breakers || []).forEach(b => tags.push('<span class="live-tag bad">熔断 ' + esc(b.model) + ' 还剩 ' + b.left_sec + 's</span>'));
+    if (!tags.length) tags.push('<span class="live-tag idle">空闲</span>');
+
+    const peak = a.peak_inflight || 0;
+    return '<div class="live-row">'
+      + '<div class="live-name">' + esc(a.account)
+      + '<span class="sub">' + inflight + '/' + conc + ' 在用 · 峰值 ' + peak + '</span></div>'
+      + '<div><div class="slots">' + blocks + '</div><div class="live-tags">' + tags.join('') + '</div></div>'
+      + '</div>';
+  }).join('');
+
+  html += '<div class="hint" style="margin-top:8px;">等名额/等槽位超过 '
+    + (lim.rpm_wait_timeout_sec || '—') + ' 秒就会放弃当前模型、换下一个（这就是"排队失败"的边界）。峰值是本次进程内见过的最高占用。</div>';
+  wrap.innerHTML = html;
+}
+
+// ============== /worker/status ==============
+const PHASE_NAMES = { preheat: '预热', refresh: '检测更新', 'body-retry': '正文补翻回访' };
+
+async function refreshWorker() {
+  try {
+    const r = await fetch('/worker/status');
+    if (!r.ok) return;
+    const s = await r.json();
+    const p = s.progress || {};
+
+    document.getElementById('worker_toggle').checked = !!s.enabled;
+    document.getElementById('worker_body').checked = !!s.body_cache;
+    document.getElementById('worker_parallelism').textContent = s.parallelism || 0;
+
+    const phaseText = p.phase || PHASE_NAMES[p.type] || p.type || '';
+    // 多来源预热时要能一眼看出当前跑的是哪个来源
+    const srcPrefix = p.platform ? srcLabel(p.platform) + ' · ' : '';
+    // 停止时补一句"下一步怎么办"：开关还开着但没在跑，最容易让人以为卡死了
+    const stoppedHint = s.enabled ? '（开关仍开着，点「预热」继续）' : '';
+    const statusText = document.getElementById('worker_status_text');
+    if (s.running) statusText.innerHTML = '<span class="running-dot"></span>运行中 · ' + srcPrefix + phaseText;
+    else if (p.status === 'done') statusText.textContent = '已完成' + stoppedHint;
+    else if (p.status === 'stopped') statusText.textContent = '已停止' + stoppedHint;
+    else statusText.textContent = '空闲';
+    const ovStatus = document.getElementById('ov_worker_status');
+    if (ovStatus) ovStatus.textContent = s.running ? '运行中 · ' + srcPrefix + phaseText : (p.status === 'done' ? '已完成' : '空闲');
+
+    const total = p.total || 0, current = p.current || 0;
+    // 只要还有进度快照就显示（含刚停止的情况），避免"任务跑过却一片空白"
+    const showProgress = total > 0 && (s.running || p.status === 'running' || p.status === 'stopped');
+    if (showProgress) {
+      document.getElementById('worker_progress_wrap').style.display = 'block';
+      const pct = Math.round(current / total * 100);
+      const fill = document.getElementById('worker_progress_fill');
+      fill.style.width = pct + '%';
+      fill.textContent = pct + '%';
+      document.getElementById('worker_progress_text').textContent =
+        (s.running && phaseText ? srcPrefix + phaseText + ' · ' : '') + `${current}/${total}` + (p.mod_id ? ` · ${p.mod_id}` : '') + (s.running ? '' : '（当前未在运行）');
+      if (s.running) updateSpeed(p, total, current, s.throughput);
+      else {
+        document.getElementById('worker_speed').textContent = '未运行';
+        document.getElementById('worker_eta').textContent = '—';
+        document.getElementById('worker_speed_src').textContent = '';
+        speedSamples = [];
+      }
+    } else {
+      document.getElementById('worker_progress_wrap').style.display = 'none';
+      speedSamples = [];
+    }
+
+    document.getElementById('worker_ok').textContent = p.ok || 0;
+    document.getElementById('worker_fail').textContent = p.fail || 0;
+    document.getElementById('worker_today_ok').textContent = s.today_ok || 0;
+    document.getElementById('worker_today_fail').textContent = s.today_fail || 0;
+    document.getElementById('worker_last_run').textContent = s.last_run > 0
+      ? new Date(s.last_run * 1000).toLocaleString('zh-CN') : '从未运行';
+
+    const running = !!s.running, enabled = !!s.enabled;
+    document.getElementById('btn_preheat').disabled = running || !enabled;
+    document.getElementById('btn_refresh').disabled = running || !enabled;
+    document.getElementById('btn_stop').disabled = !running;
+
+    const recent = p.recent || [];
+    if (recent.length > 0) {
+      document.getElementById('worker_recent_wrap').style.display = 'block';
+      document.getElementById('worker_recent').textContent = recent.slice().reverse().join('\n');
+    } else {
+      document.getElementById('worker_recent_wrap').style.display = 'none';
+    }
+    // 来源预热控制行随状态一起刷新（开关/游标/步长/自动续跑都在里面）
+    renderPreheatSources(s.preheat, s.autocontinue);
+  } catch (e) { /* 忽略 */ }
+}
+
+// ============== 来源预热（开关 / 游标 / 步长）==============
+// 每个来源各有一套游标与步长（服务端分开存），所以这里按来源渲染控制行。
+let preheatSources = {}, cfAutocontinue = false;
+
+function srcLabel(p) {
+  if (p === 'modrinth') return 'Modrinth';
+  return p || '';
+}
+
+// renderPreheatSources 渲染控制行：开关 + 已缓存位置 + 每次预热数 + 立即预热 / 重置。
+function renderPreheatSources(state, autocontinue) {
+  const wrap = document.getElementById('preheat_sources');
+  if (!wrap) return;
+  preheatSources = state || {};
+  cfAutocontinue = !!autocontinue;
+  const rows = ['modrinth'].map(p => {
+    const s = preheatSources[p] || {};
+    return '<div class="preheat-row">'
+      + '<label class="hint"><input type="checkbox" ' + (s.enabled ? 'checked' : '')
+      + ' onchange="togglePreheatSource(\'' + p + '\', this.checked)"><span>' + srcLabel(p) + '</span></label>'
+      + '<span class="hint">已缓存位置 <strong>' + (s.cursor || 0) + '</strong></span>'
+      + '<span class="hint">每次预热 <input type="number" min="100" max="50000" value="' + (s.step || 5000)
+      + '" style="width:80px;padding:4px;" onchange="updatePreheatStep(\'' + p + '\', this.value)"> 个</span>'
+      + '<button class="sm" onclick="startOnePlatform(\'' + p + '\')">立即预热</button>'
+      + '<button class="sm" onclick="resetPreheatCursor(\'' + p + '\')">重置到 Top 1</button>'
+      + '</div>';
+  });
+  // 自动续跑（全局开关）：勾上之后一批跑完会自己开下一批，直到"没有新条目"或用户点停止/取消勾选
+  rows.push('<div class="preheat-row">'
+    + '<label class="hint"><input type="checkbox" ' + (cfAutocontinue ? 'checked' : '')
+    + ' onchange="toggleAutocontinue(this.checked)"><span>自动续跑</span></label>'
+    + '<span class="hint">一批跑完自动开下一批；无新条目或点停止即停</span>'
+    + '</div>');
+  wrap.innerHTML = rows.join('');
+}
+
+async function toggleAutocontinue(on) {
+  try {
+    const r = await fetch('/worker/toggle', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ autocontinue: on }),
+    });
+    if (!r.ok) { alert('切换失败: ' + r.status); return; }
+    refreshWorker();
+  } catch (e) { alert('切换失败: ' + e.message); }
+}
+
+async function togglePreheatSource(platform, on) {
+  const body = { preheat_modrinth: on };
+  try {
+    const r = await fetch('/worker/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!r.ok) alert('切换失败: ' + r.status);
+    refreshWorker();
+  } catch (e) { alert('切换失败: ' + e.message); }
+}
+async function updatePreheatStep(platform, v) {
+  const step = parseInt(v, 10);
+  if (!step || step <= 0) return;
+  try {
+    const r = await fetch('/worker/preheat/cursor', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ platform: platform, step: step }),
+    });
+    if (!r.ok) alert('保存失败');
+  } catch (e) { alert('保存失败: ' + e.message); }
+}
+async function resetPreheatCursor(platform) {
+  const s = preheatSources[platform] || {};
+  // CF 的游标是"当前类型内的位置"，重置只影响当前类型（其它类型的进度保留）
+  const what = s.class_name ? (srcLabel(platform) + ' 当前类型（' + s.class_name + '）') : srcLabel(platform);
+  if (!confirm('把 ' + what + ' 的预热位置重置到第 1 名？（不会删除已缓存的数据）')) return;
+  try {
+    const r = await fetch('/worker/preheat/cursor', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ platform: platform, cursor: 0 }),
+    });
+    if (!r.ok) { alert('重置失败'); return; }
+    refreshWorker();
+  } catch (e) { alert('重置失败: ' + e.message); }
+}
+// startOnePlatform 只预热一个来源
+async function startOnePlatform(platform) {
+  await startWorker('preheat', platform);
+}
+
+// ============== 接口鉴权开关 ==============
+// 逐接口开关：路径 → 是否需要账号密码。默认表与后端 authmw.go 保持一致。
+const AUTH_PATHS = [
+  ['/health', '健康检查（拨测用）', 0],
+  ['/translate/mod', '单个 mod 翻译', 0],
+  ['/translate/mods', '批量 mod 翻译', 0],
+  ['/feedback/stale', '过期反馈', 0],
+  ['/feedback/quality', '质量反馈', 0],
+  ['/stats', '统计数据', 1],
+  ['/worker/status', 'worker 状态', 1],
+  ['/worker/start', '启动任务', 1],
+  ['/worker/stop', '停止任务', 1],
+  ['/worker/toggle', '启用 / 正文开关', 1],
+  ['/worker/preheat/cursor', '预热游标与步长', 1],
+  ['/worker/logs', '日志查看', 1],
+  ['/worker/cache/list', '缓存列表', 1],
+  ['/worker/cache/get', '缓存详情', 1],
+  ['/advisor/snapshot', '管家快照', 1],
+  ['/advisor/ask', '问管家', 1],
+  ['/advisor/last', '上次建议', 1],
+  ['/advisor/apply', '应用管家建议', 1],
+  ['/advisor/rollback', '回滚管家建议', 1],
+  ['/live', '实时槽位视图', 1],
+  ['/worker/feedback/list', '反馈列表', 1],
+  ['/worker/feedback/status', '反馈改状态', 1],
+  ['/worker/feedback/retranslate', '重新翻译', 1],
+  ['/config/get', '读取配置', 1],
+  ['/config/set', '保存配置', 1],
+  ['/config/reset', '恢复默认', 1],
+  ['/config/test', '测试链路', 1],
+];
+function renderAuthGrid(cfg) {
+  const grid = document.getElementById('auth_grid');
+  if (!grid) return;
+  const cur = (cfg && cfg.auth_endpoints) || {};
+  grid.innerHTML = AUTH_PATHS.map(([p, t, def]) => {
+    const on = (p in cur) ? !!cur[p] : !!def;
+    return '<label class="auth-item">'
+      + '<input type="checkbox" data-path="' + p + '"' + (on ? ' checked' : '') + ' onchange="authTogglePath(this)">'
+      + '<span><b>' + p + '</b><em>' + t + (on ? '' : ' · 当前免鉴权') + '</em></span></label>';
+  }).join('');
+}
+function authTogglePath(el) {
+  if (el.checked) { renderAuthGrid({ auth_endpoints: collectAuthEndpoints() }); return; }
+  if (!confirm('把 ' + el.dataset.path + ' 改为「免鉴权」？\n任何知道地址的人都能访问它。')) {
+    el.checked = true;
+  }
+  renderAuthGrid({ auth_endpoints: collectAuthEndpoints() });
+}
+function authSetClientPublic() {
+  const out = {};
+  AUTH_PATHS.forEach(([p, , def]) => { out[p] = !!def; });
+  renderAuthGrid({ auth_endpoints: out });
+}
+function authSetAllRequired() {
+  if (!confirm('把全部接口（含客户端接口）都设为需要鉴权？\n模组客户端会全部失败，除非它们也带账号密码。')) return;
+  const out = {};
+  AUTH_PATHS.forEach(([p]) => { out[p] = true; });
+  renderAuthGrid({ auth_endpoints: out });
+}
+function collectAuthEndpoints() {
+  const out = {};
+  document.querySelectorAll('#auth_grid input[data-path]').forEach(el => { out[el.dataset.path] = el.checked; });
+  return out;
+}
+
+// ============== Worker 控制 ==============
+async function toggleWorker() {
+  const enabled = document.getElementById('worker_toggle').checked;
+  try {
+    const r = await fetch('/worker/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }) });
+    if (!r.ok) { alert('切换失败: ' + r.status); document.getElementById('worker_toggle').checked = !enabled; return; }
+    refreshWorker();
+  } catch (e) { alert('切换失败: ' + e.message); }
+}
+async function toggleWorkerBody() {
+  const bodyCache = document.getElementById('worker_body').checked;
+  try {
+    const r = await fetch('/worker/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body_cache: bodyCache }) });
+    if (!r.ok) { alert('切换失败: ' + r.status); document.getElementById('worker_body').checked = !bodyCache; return; }
+    refreshWorker();
+  } catch (e) { alert('切换失败: ' + e.message); }
+}
+async function startWorker(type, platform) {
+  const what = type === 'preheat'
+    ? ('开始预热？' + (platform ? '（仅 ' + srcLabel(platform) + '）' : '（按勾选的来源逐个跑，从各自已缓存位置继续）'))
+    : '开始检测更新？（两个来源合起来最多 500 个）';
+  if (!confirm(what)) return;
+  try {
+    const r = await fetch('/worker/start', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: type, platform: platform || '' }),
+    });
+    const data = await r.json();
+    if (!r.ok) { alert('启动失败: ' + (data.error || r.status)); return; }
+    refreshWorker();
+  } catch (e) { alert('启动失败: ' + e.message); }
+}
+async function stopWorker() {
+  if (!confirm('停止 Worker？当前 mod 完成后会停止。')) return;
+  try {
+    const r = await fetch('/worker/stop', { method: 'POST' });
+    if (!r.ok) { alert('停止失败: ' + r.status); return; }
+    refreshWorker();
+  } catch (e) { alert('停止失败: ' + e.message); }
+}
+
+// ============== 配置：Provider ==============
+function providerTypeTag(type) {
+  const t = type === 'gemini' ? 'gemini' : 'openai';
+  return `<span class="type-tag ${t}">${t.toUpperCase()}</span>`;
+}
+function renderProviders() {
+  const grid = document.getElementById('providers_grid');
+  if (!grid) return;
+  document.getElementById('providers_count').textContent = providers.length + ' 个';
+  if (providers.length === 0) {
+    grid.innerHTML = '<div class="empty">暂无 Provider，点击右上角添加</div>';
+  } else {
+    grid.innerHTML = providers.map((p, i) => {
+      const mine = chain.map((st, j) => ({ st, j })).filter(o => o.st.provider === p.name);
+      return `
+      <div class="provider-card">
+        <div class="pc-head">
+          <input class="pc-name-input" type="text" value="${esc(p.name)}" placeholder="Provider 名称" title="Provider 名称（改完回车或点空白处生效，引用它的链步骤会一起更新）" onchange="renameProvider(${i}, this.value)">
+          <span class="pc-actions">
+            ${providerTypeTag(p.type)}
+            <button class="sm" onclick="testProvider(${i})">测试</button>
+            <button class="danger sm" onclick="removeProvider(${i})">删除</button>
+          </span>
+        </div>
+        <div class="pc-field"><label>类型</label>
+          <select onchange="providers[${i}].type=this.value; renderProviders();">
+            <option value="openai" ${p.type === 'openai' ? 'selected' : ''}>OpenAI 兼容</option>
+            <option value="gemini" ${p.type === 'gemini' ? 'selected' : ''}>Gemini</option>
+          </select>
+        </div>
+        <div class="pc-field"><label>Base URL</label>
+          <input type="text" value="${esc(p.base_url)}" oninput="providers[${i}].base_url=this.value">
+        </div>
+        <div class="pc-field"><label>模型</label>
+          <div class="pc-model-list">
+            ${mine.length === 0
+              ? '<div class="hint">未配置模型，该 provider 不会被调用</div>'
+              : mine.map(o => `
+                <div class="pc-model-row">
+                  <input type="text" value="${esc(o.st.model)}" placeholder="如 your-model-name" title="模型名；尝试顺序由下方 Fallback 链路决定" oninput="chain[${o.j}].model=this.value" onchange="renderChain()">
+                  <button class="ghost" onclick="removeModelFor(${o.j})" title="移除该模型">✕</button>
+                </div>`).join('')}
+            <button class="ghost pc-add-model" onclick="addModelFor(${i})">＋ 添加模型</button>
+          </div>
+        </div>
+        <div class="pc-field"><label>API Key</label>
+          <input type="password" value="${esc(p.api_key)}" placeholder="填写新 Key 以更新" oninput="providers[${i}].api_key=this.value">
+          ${p.api_key === MASK ? '<span class="key-badge pc-field" style="grid-column:2;">✓ 已配置</span>' : ''}
+        </div>
+        <div class="pc-field"><label>并发</label>
+          <input type="number" min="1" max="100" value="${p.concurrent}" oninput="providers[${i}].concurrent=+this.value">
+        </div>
+        <div class="pc-field"><label>超时(秒)</label>
+          <input type="number" min="1" max="120" value="${p.timeout_sec}" oninput="providers[${i}].timeout_sec=+this.value">
+        </div>
+      </div>`;
+    }).join('');
+  }
+  renderChain();
+  renderAdvisor();
+}
+function addProvider() {
+  const n = providers.length + 1;
+  providers.push({ name: 'provider' + n, prevName: '', type: 'openai', base_url: 'https://api.openai.com/v1', api_key: '', concurrent: 2, timeout_sec: 5 });
+  renderProviders();
+}
+// renameProvider 改名并同步引用它的链步骤；prevName 记录改名前服务端里的名字，
+// 服务端据此在 key 还是掩码时找回真实 key（否则改名会把 key 存成 ********）。
+function renameProvider(i, newName) {
+  const p = providers[i];
+  if (!p) return;
+  const old = p.name;
+  const name = (newName || '').trim();
+  if (!name) { alert('Provider 名称不能为空'); renderProviders(); return; }
+  if (name === old) { renderProviders(); return; }
+  if (providers.some((q, j) => j !== i && q.name === name)) { alert('Provider 名称重复: ' + name); renderProviders(); return; }
+  p.prevName = p.prevName || old;
+  p.name = name;
+  chain.forEach(st => { if (st.provider === old) st.provider = name; });
+  renderProviders();
+}
+function addModelFor(i) {
+  const p = providers[i];
+  if (!p) return;
+  chain.push({ provider: p.name, model: '', daily_limit: 0, out_tok: 0, share: 0, rpm: 0, cool: 0 });
+  renderProviders();
+}
+function removeModelFor(j) { if (chain[j]) { chain.splice(j, 1); renderProviders(); } }
+function removeProvider(i) {
+  if (!confirm('删除 Provider「' + providers[i].name + '」？引用它的链步骤也会被移除。')) return;
+  const name = providers[i].name;
+  providers.splice(i, 1);
+  chain = chain.filter(st => st.provider !== name);
+  renderProviders();
+}
+
+// ============== 配置：Fallback 链 ==============
+function renderChain() {
+  const list = document.getElementById('chain_list');
+  const wrap = document.getElementById('t_model_usage');
+  if (!list) return;
+  document.getElementById('chain_count').textContent = chain.length + ' 个';
+  if (chain.length === 0) {
+    list.innerHTML = '<div class="empty">链条为空，点击右上角添加模型</div>';
+  } else {
+    list.innerHTML = chain.map((st, i) => `
+      <div class="chain-row">
+        <div class="cf-order">${i + 1}</div>
+        <div class="cf-field cf-provider"><label>Provider</label>
+          <select onchange="chain[${i}].provider=this.value; renderChain();">
+            ${providers.map(p => `<option value="${esc(p.name)}" ${p.name === st.provider ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="cf-field cf-model"><label>Model</label>
+          <input type="text" value="${esc(st.model)}" placeholder="如 your-model-name" oninput="chain[${i}].model=this.value">
+        </div>
+        <div class="cf-field cf-limit"><label>每日上限(Worker)</label>
+          <input type="number" min="0" value="${st.daily_limit || 0}" title="该模型每日预算，0=不限" oninput="chain[${i}].daily_limit=+this.value">
+        </div>
+        <div class="cf-field cf-outtok"><label>输出Token/分</label>
+          <input type="number" min="0" value="${st.out_tok || 0}" title="每分钟输出token预算（正文分块限速），0=不限速" oninput="chain[${i}].out_tok=+this.value">
+        </div>
+        <div class="cf-field cf-rpm"><label>RPM</label>
+          <input type="number" min="0" max="100000" value="${st.rpm || 0}" title="每分钟请求数上限，0=不限。免费档常硬限（如 20）；填了之后请求会在本地按 60/RPM 秒的间隔排队，避免撞限速被强制冷却。注意：按【账号】计——同一个 provider 下挂多个模型时共用这个额度（取最小值）。" oninput="chain[${i}].rpm=+this.value">
+        </div>
+        <div class="cf-field cf-cool"><label>限速冷却(秒)</label>
+          <input type="number" min="0" max="3600" value="${st.cool || 0}" title="命中限速后冷却多久，0=默认 15 秒。上游若规定「超限罚一分钟」就填 60。" oninput="chain[${i}].cool=+this.value">
+        </div>
+        <div class="cf-field cf-share"><label>正文分摊</label>
+          <input type="number" min="0" value="${st.share || 0}" title="正文分摊权重：>0 才会参与正文/描述的分块分摊（按权重把 mod 分给不同模型）；0=只做兜底，worker 不会主动用它。多账号时务必都填 >0，否则新账号等于白加。" oninput="chain[${i}].share=+this.value">
+        </div>
+        <div class="cf-ctrl">
+          <button class="ghost" ${i === 0 ? 'disabled' : ''} onclick="moveChainStep(${i},-1)" title="上移">↑</button>
+          <button class="ghost" ${i === chain.length - 1 ? 'disabled' : ''} onclick="moveChainStep(${i},1)" title="下移">↓</button>
+          <button class="ghost" onclick="removeChainStep(${i})" title="删除">✕</button>
+        </div>
+      </div>`).join('');
+  }
+  if (wrap) wrap.innerHTML = '<tbody><tr><td class="empty">保存或刷新后显示用量</td></tr></tbody>';
+}
+function addChainStep() {
+  // share 默认 5（与多账号分摊的常见配置一致）：新加的步骤若 share=0，worker 的正文/描述分摊
+  // 会完全绕过它 —— 只能当兜底，用户很容易以为"加了账号没用"（踩过）。想纯兜底就手动改 0。
+  chain.push({ provider: providers[0] ? providers[0].name : '', model: '', daily_limit: 0, out_tok: 0, share: 5, rpm: 0, cool: 0 });
+  renderProviders();
+}
+function removeChainStep(i) { chain.splice(i, 1); renderProviders(); }
+function moveChainStep(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= chain.length) return;
+  const t = chain[i]; chain[i] = chain[j]; chain[j] = t;
+  renderProviders();
+}
+
+// ============== 配置加载 / 保存 / 重置 / 测试 ==============
+async function loadConfig() {
+  try {
+    const r = await fetch('/config/get');
+    if (!r.ok) return;
+    const cfg = await r.json();
+    providers = (cfg.providers || []).map(p => ({
+      name: p.name, type: p.type, base_url: p.base_url,
+      api_key: p.api_key || '', concurrent: p.concurrent, timeout_sec: p.timeout_sec,
+    }));
+    chain = (cfg.chain || []).map(st => ({
+      provider: st.provider, model: st.model, daily_limit: st.daily_limit || 0,
+      out_tok: st.out_tokens_per_min || 0, share: st.body_share || 0,
+      rpm: st.rpm || 0, cool: st.rate_limit_cooldown_sec || 0,
+    }));
+    advisorCfg = { provider: cfg.advisor_provider || '', model: cfg.advisor_model || '' };
+    const aw = document.getElementById('advisor_window');
+    if (aw) aw.value = cfg.advisor_window_min || 10;
+    document.getElementById('cfg_breaker_threshold').value = cfg.breaker_threshold || 3;
+    document.getElementById('cfg_breaker_duration').value = cfg.breaker_duration_min || 5;
+    document.getElementById('cfg_body_chunk').value = cfg.body_chunk_chars || 1500;
+    renderAuthGrid(cfg);
+    renderProviders();
+    renderModelUsage([], {});
+    populateLogModels();
+  } catch (e) { console.error('loadConfig', e); }
+}
+// ============== AI 管家（只出建议，不改配置）==============
+let advisorCfg = { provider: '', model: '' };
+
+// 观察窗分钟数：管家判断用的时间范围（服务端还会做 1~120 的兜底钳制）
+function advWindowMin() {
+  const el = document.getElementById('advisor_window');
+  let n = parseInt((el || {}).value, 10);
+  if (!(n >= 1)) n = 10;
+  if (n > 120) n = 120;
+  return n;
+}
+
+function renderAdvisor() {
+  const sel = document.getElementById('advisor_provider');
+  if (!sel) return;
+  const cur = sel.value || advisorCfg.provider || '';
+  sel.innerHTML = ['<option value="">（未启用）</option>'].concat(
+    providers.map(p => `<option value="${esc(p.name)}" ${p.name === cur ? 'selected' : ''}>${esc(p.name)}</option>`)
+  ).join('');
+  const m = document.getElementById('advisor_model');
+  if (m && document.activeElement !== m && !m.value) m.value = advisorCfg.model || '';
+}
+
+// advisorSnapshot 只生成并显示脱敏快照（不发任何模型），方便你自己确认里面有什么。
+async function advisorSnapshot() {
+  const st = document.getElementById('advisor_state');
+  st.textContent = '生成中…';
+  try {
+    const r = await fetch('/advisor/snapshot', { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) { st.textContent = '✗ HTTP ' + r.status; return; }
+    const d = await r.json();
+    const pre = document.getElementById('advisor_raw');
+    pre.style.display = '';
+    pre.textContent = JSON.stringify(d, null, 2);
+    document.getElementById('advisor_advice').style.display = 'none';
+    st.textContent = '快照已生成（未发送给任何模型）';
+  } catch (e) { st.textContent = '✗ ' + e.message; }
+}
+
+async function advisorAsk() {
+  const st = document.getElementById('advisor_state');
+  st.textContent = '管家思考中…';
+  try {
+    const r = await fetch('/advisor/ask', { method: 'POST' });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.ok) { st.textContent = '✗ ' + (d.error || ('HTTP ' + r.status)); return; }
+    st.textContent = '✓ ' + d.model + ' · ' + d.ms + 'ms';
+    renderAdvisorAdvice(d);
+  } catch (e) { st.textContent = '✗ ' + e.message; }
+}
+
+async function advisorLast() {
+  const st = document.getElementById('advisor_state');
+  try {
+    const r = await fetch('/advisor/last', { headers: { 'Accept': 'application/json' } });
+    const d = await r.json().catch(() => ({}));
+    if (!d.ok) { st.textContent = d.error || '还没有问过管家'; return; }
+    st.textContent = '上次提问：' + new Date(d.asked_at * 1000).toLocaleString('zh-CN') + ' · ' + d.model;
+    renderAdvisorAdvice(d);
+  } catch (e) { st.textContent = '✗ ' + e.message; }
+}
+
+// renderAdvisorAdvice 展示管家建议；每条改动都带服务端的确定性校验结果（通过校验 / 非法原因）。
+function renderAdvisorAdvice(d) {
+  const box = document.getElementById('advisor_advice');
+  box.style.display = '';
+  const a = d.advice;
+  let html = '';
+  if (!a) {
+    html = '<div class="hint" style="color:var(--bad)">管家输出不是合法 JSON：' + esc(d.parse_error || '') + '</div>';
+  } else {
+    html += '<div style="margin-bottom:6px;">结论：<strong>' + esc(a.summary || '（无）') + '</strong>'
+      + ' <span class="hint">health=' + esc(a.health || '?') + ' · 置信度 ' + (a.confidence != null ? a.confidence : '?') + '</span></div>';
+    if ((a.diagnosis || []).length) {
+      html += '<div class="hint" style="margin-bottom:6px;">' + a.diagnosis.map(x => '· ' + esc(x)).join('<br>') + '</div>';
+    }
+    if ((a.changes || []).length) {
+      html += '<table><thead><tr><th>账号</th><th>字段</th><th>当前</th><th>建议</th><th>理由</th><th>校验</th></tr></thead><tbody>';
+      a.changes.forEach(c => {
+        html += '<tr><td class="mono">' + esc(c.target) + '</td><td class="mono">' + esc(c.field) + '</td>'
+          + '<td class="hint">' + esc(c.from || '') + '</td><td><strong>' + esc(c.to) + '</strong></td>'
+          + '<td class="hint">' + esc(c.reason || '') + '</td>'
+          + '<td>' + (c.valid
+            ? '<span class="tag body">通过校验</span>'
+            : '<span class="tag" style="background:rgba(220,38,38,.12);color:var(--bad)">' + esc(c.error || '非法') + '</span>')
+          + '</td></tr>';
+      });
+      html += '</tbody></table>'
+        + '<div class="cf-actions" style="margin-top:8px;">'
+        + '<button class="primary sm" onclick="advisorApply()">应用「通过校验」的项</button>'
+        + '<button class="sm" onclick="advisorRollback()" title="回到应用建议之前的配置">回滚上次应用</button>'
+        + '<span class="hint">应用前会自动备份；并发/RPM 立即生效</span></div>';
+    } else {
+      html += '<div class="hint">管家认为不需要改动。</div>';
+    }
+    if ((a.warnings || []).length) {
+      html += '<div class="hint" style="margin-top:6px;color:var(--bad)">' + a.warnings.map(x => '⚠ ' + esc(x)).join('<br>') + '</div>';
+    }
+  }
+  box.innerHTML = html;
+}
+
+// advisorApply 应用建议里「通过校验」的项；服务端会再校验一次并先备份。
+async function advisorApply() {
+  const st = document.getElementById('advisor_state');
+  if (!confirm('应用管家建议里「通过校验」的项？\n（服务端会再校验一次，并自动备份当前配置，可回滚）')) return;
+  try {
+    const r = await fetch('/advisor/apply', { method: 'POST' });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.ok) { st.textContent = '✗ ' + (d.error || ('HTTP ' + r.status)); return; }
+    const n = (d.changed || []).length;
+    st.textContent = n ? ('✓ 已应用 ' + n + ' 项') : '没有可应用项';
+    alert(n ? ('已应用：\n' + d.changed.join('\n')) : (d.note || '没有可应用项'));
+    await loadConfig();
+    refreshWorker();
+  } catch (e) { st.textContent = '✗ ' + e.message; }
+}
+
+async function advisorRollback() {
+  const st = document.getElementById('advisor_state');
+  if (!confirm('回滚到「应用建议之前」的配置？')) return;
+  try {
+    const r = await fetch('/advisor/rollback', { method: 'POST' });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.ok) { st.textContent = '✗ ' + (d.error || ('HTTP ' + r.status)); return; }
+    st.textContent = '✓ ' + (d.note || '已回滚');
+    await loadConfig();
+    refreshWorker();
+  } catch (e) { st.textContent = '✗ ' + e.message; }
+}
+
+function validateConfig() {
+  const err = (m) => ({ ok: false, msg: m });
+  if (providers.length === 0) return err('至少需要一个 Provider');
+  const seen = {};
+  for (const p of providers) {
+    if (!p.name.trim()) return err('Provider 名称不能为空');
+    if (seen[p.name]) return err('Provider 名称重复: ' + p.name);
+    seen[p.name] = true;
+    if (p.type !== 'openai' && p.type !== 'gemini') return err('Provider 类型非法: ' + p.name);
+    if (!p.base_url.trim()) return err('Provider Base URL 不能为空: ' + p.name);
+    if (p.concurrent < 1 || p.concurrent > 100) return err(p.name + ' 并发需在 1-100');
+    if (p.timeout_sec < 1 || p.timeout_sec > 120) return err(p.name + ' 超时需在 1-120');
+  }
+  if (chain.length === 0) return err('Fallback 链不能为空');
+  for (const st of chain) {
+    if (!seen[st.provider]) return err('链引用了不存在的 Provider: ' + st.provider);
+    if (!st.model.trim()) return err('链上模型名不能为空');
+    if (st.daily_limit < 0) return err('每日上限不能为负: ' + st.model);
+    if (st.out_tok < 0) return err('输出Token/分不能为负: ' + st.model);
+    if (st.share < 0) return err('正文分摊权重不能为负: ' + st.model);
+    if (st.rpm < 0 || st.rpm > 100000) return err('RPM 需在 0-100000: ' + st.model);
+    if (st.cool < 0 || st.cool > 3600) return err('限速冷却需在 0-3600 秒: ' + st.model);
+  }
+  const bc = cfgBodyChunk();
+  if (bc < 200 || bc > 8000) return err('正文分块字符数需在 200-8000');
+  return { ok: true };
+}
+function cfgBodyChunk() {
+  const v = parseInt(document.getElementById('cfg_body_chunk').value, 10);
+  return v > 0 ? v : 1500;
+}
+// buildConfigPayload 汇总面板当前表单值；保存与测试共用，保证"测试的就是你填的内容"。
+function buildConfigPayload() {
+  return {
+    providers: providers.map(p => ({
+      name: p.name.trim(), type: p.type, base_url: p.base_url.trim(),
+      api_key: p.api_key || '', concurrent: p.concurrent, timeout_sec: p.timeout_sec,
+      prev_name: p.prevName || '',
+    })),
+    chain: chain.map(st => ({
+      provider: st.provider, model: st.model.trim(), daily_limit: st.daily_limit || 0,
+      out_tokens_per_min: st.out_tok || 0, body_share: st.share || 0,
+      rpm: st.rpm || 0, rate_limit_cooldown_sec: st.cool || 0,
+    })),
+    breaker_threshold: parseInt(document.getElementById('cfg_breaker_threshold').value, 10),
+    breaker_duration_min: parseInt(document.getElementById('cfg_breaker_duration').value, 10),
+    body_chunk_chars: cfgBodyChunk(),
+    auth_endpoints: collectAuthEndpoints(),
+    advisor_provider: (document.getElementById('advisor_provider') || {}).value || '',
+    advisor_model: ((document.getElementById('advisor_model') || {}).value || '').trim(),
+    advisor_window_min: advWindowMin(),
+  };
+}
+async function saveConfig() {
+  const resultEl = document.getElementById('config_result');
+  resultEl.textContent = '';
+  const check = validateConfig();
+  if (!check.ok) { resultEl.textContent = '✗ ' + check.msg; resultEl.style.color = 'var(--bad)'; return; }
+  try {
+    const r = await fetch('/config/set', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(buildConfigPayload()) });
+    if (!r.ok) { resultEl.textContent = '✗ 保存失败: ' + (await r.text()); resultEl.style.color = 'var(--bad)'; return; }
+    resultEl.textContent = '✓ 已保存并生效';
+    resultEl.style.color = 'var(--good)';
+    await loadConfig();
+    refresh();
+    refreshWorker();
+  } catch (e) { resultEl.textContent = '✗ ' + e.message; resultEl.style.color = 'var(--bad)'; }
+}
+async function resetConfig() {
+  if (!confirm('恢复所有配置到环境变量默认值？')) return;
+  try {
+    const r = await fetch('/config/reset', { method: 'POST' });
+    if (!r.ok) { alert('重置失败: ' + r.status); return; }
+    await loadConfig();
+    resultHint('✓ 已恢复默认');
+    document.getElementById('config_result').style.color = 'var(--good)';
+    refresh();
+    refreshWorker();
+  } catch (e) { alert('重置失败: ' + e.message); }
+}
+async function testRequest(body, label) {
+  resultHint(label + '…');
+  const r = await fetch('/config/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await r.json();
+  if (data.ok) {
+    const e = document.getElementById('config_result');
+    e.textContent = `✓ ${data.model || '整条链'} 正常（${data.elapsed}ms）${data.result ? '：' + data.result : ''}`;
+    e.style.color = 'var(--good)';
+  } else {
+    resultErr(label + ' 失败: ' + data.error);
+  }
+}
+async function testProvider(i) {
+  const p = providers[i];
+  if (!p) return;
+  const check = validateConfig();
+  if (!check.ok) { resultErr(check.msg); return; }
+  resultHint(`测试 ${p.name}（当前表单内容）…`);
+  try { await testRequest({ provider: p.name, model: '', config: buildConfigPayload() }, '测试 ' + p.name); }
+  catch (e) { resultErr(e.message); }
+}
+async function testConfigAll() {
+  const check = validateConfig();
+  if (!check.ok) { resultErr(check.msg); return; }
+  try { await testRequest({ provider: '', model: '', config: buildConfigPayload() }, '测试整条链'); }
+  catch (e) { resultErr(e.message); }
+}
+function resultHint(t) { const e = document.getElementById('config_result'); e.textContent = t; e.style.color = 'var(--muted)'; }
+function resultErr(t) { const e = document.getElementById('config_result'); e.textContent = '✗ ' + t; e.style.color = 'var(--bad)'; }
+
+// ============== 缓存浏览 ==============
+let cacheOffset = 0, cacheLimit = 50, cacheQ = '', cacheKind = 'all', cacheTotal = 0, cacheRows = [];
+
+// srcTag 渲染来源标识（未知来源原样显示，方便将来接新平台时一眼看出）
+function srcTag(p) {
+  if (p === 'modrinth') return '<span class="tag src-mr">Modrinth</span>';
+  return '<span class="hint">' + esc(p || '?') + '</span>';
+}
+let rawMode = false, currentDetail = null;
+
+// renderMarkdown：marked 渲染 + DOMPurify 净化（mod 正文含原始 HTML，必须净化）
+function renderMarkdown(text) {
+  if (!window.marked || !window.DOMPurify) return null;
+  try {
+    window.marked.setOptions({ gfm: true, breaks: true });
+    return window.DOMPurify.sanitize(window.marked.parse(text), { ADD_ATTR: ['target', 'rel'] });
+  } catch (e) { return null; }
+}
+function renderSection(which, entry) {
+  const el = document.getElementById('text_' + which);
+  const sub = document.getElementById('sub_' + which);
+  if (!entry || !entry.text) {
+    sub.textContent = '';
+    el.classList.remove('raw');
+    el.innerHTML = '<div class="empty">这个 mod 还没有缓存' + (which === 'desc' ? '描述' : '正文') + '</div>';
+    return;
+  }
+  sub.textContent = entry.chars + ' 字符 · 翻译于 ' + fmtTime(entry.translated_at);
+  if (rawMode) { el.classList.add('raw'); el.textContent = entry.text; return; }
+  const html = renderMarkdown(entry.text);
+  if (html === null) { el.classList.add('raw'); el.textContent = entry.text; return; }
+  el.classList.remove('raw');
+  el.innerHTML = html;
+  el.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener noreferrer'; });
+  el.querySelectorAll('img').forEach(img => { img.loading = 'lazy'; });
+}
+function toggleRaw() {
+  rawMode = !rawMode;
+  document.getElementById('rawBtn').textContent = rawMode ? '渲染 Markdown' : '显示源码';
+  document.getElementById('md_state').textContent = rawMode ? '源码模式' : '';
+  if (currentDetail) { renderSection('desc', currentDetail.desc); renderSection('body', currentDetail.body); }
+}
+async function loadCacheDetail(i) {
+  const it = cacheRows[i];
+  if (!it) return;
+  try {
+    const r = await fetch('/worker/cache/get?key=' + encodeURIComponent(it.key), { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) return;
+    const d = await r.json();
+    const sib = (d.sibling && d.sibling.key) ? d.sibling : null;
+    const desc = d.kind === 'desc' ? d : sib;
+    const body = d.kind === 'body' ? d : sib;
+    currentDetail = { desc: desc, body: body };
+    document.getElementById('detail_panel').style.display = '';
+    document.getElementById('detail_meta').textContent =
+      d.mod_id + ' · ' + (d.platform || '') + ' · 描述 ' + (desc ? desc.chars + ' 字符' : '未缓存') +
+      ' · 正文 ' + (body ? body.chars + ' 字符' : '未缓存');
+    // 外链按来源走（未知来源不给链接，避免拼出 404 地址）
+    const link = document.getElementById('project_link');
+    if (link) {
+      if (d.platform === 'modrinth') {
+        link.href = 'https://modrinth.com/mod/' + encodeURIComponent(d.mod_id);
+        link.querySelector('button').textContent = '在 Modrinth 打开';
+        link.style.display = '';
+      } else {
+        link.style.display = 'none';
+      }
+    }
+    document.getElementById('col_desc').classList.toggle('active', d.kind === 'desc');
+    document.getElementById('col_body').classList.toggle('active', d.kind === 'body');
+    renderSection('desc', desc);
+    renderSection('body', body);
+    document.getElementById('detail_panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) { /* 忽略 */ }
+}
+function copyDetail() {
+  const btn = document.getElementById('copyBtn');
+  const t = (currentDetail && currentDetail.desc ? currentDetail.desc.text : '') + '\n\n' + (currentDetail && currentDetail.body ? currentDetail.body.text : '');
+  navigator.clipboard.writeText(t).then(() => {
+    btn.textContent = '已复制 ' + t.length + ' 字符';
+    setTimeout(() => { btn.textContent = '复制全文'; }, 1500);
+  }).catch(() => { btn.textContent = '复制失败'; });
+}
+async function loadCacheList() {
+  try {
+    const url = '/worker/cache/list?q=' + encodeURIComponent(cacheQ) + '&kind=' + cacheKind
+      + '&limit=' + cacheLimit + '&offset=' + cacheOffset;
+    const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) return;
+    const d = await r.json();
+    cacheTotal = d.total || 0;
+    cacheLimit = d.limit || cacheLimit;
+    cacheOffset = d.offset || 0;
+    document.getElementById('counts').textContent = '匹配 ' + (d.desc_count || 0) + ' 条描述 · ' + (d.body_count || 0) + ' 条正文';
+    const wrap = document.getElementById('t_list');
+    cacheRows = d.items || [];
+    if (!cacheRows.length) {
+      wrap.innerHTML = '<tbody><tr><td class="empty">没有匹配的缓存条目</td></tr></tbody>';
+    } else {
+      let html = '<thead><tr><th>类型</th><th>Mod</th><th>语言</th><th>字符数</th><th>翻译时间</th><th>译文预览</th><th></th></tr></thead><tbody>';
+      cacheRows.forEach((it, i) => {
+        const isBody = it.kind === 'body';
+        html += '<tr style="cursor:pointer" onclick="loadCacheDetail(' + i + ')">'
+          + '<td>' + (isBody ? '<span class="tag body">正文</span>' : '<span class="tag desc">描述</span>') + '</td>'
+          + '<td class="mono">' + esc(it.mod_id) + '</td>'
+          + '<td>' + esc(it.lang) + '</td>'
+          + '<td>' + (it.chars || 0) + '</td>'
+          + '<td class="hint">' + fmtTime(it.translated_at) + '</td>'
+          + '<td class="preview">' + esc(it.preview) + '</td>'
+          + '<td><button class="ghost" onclick="event.stopPropagation();loadCacheDetail(' + i + ')">查看</button></td>'
+          + '</tr>';
+      });
+      wrap.innerHTML = html + '</tbody>';
+    }
+    const cur = Math.floor(cacheOffset / cacheLimit) + 1;
+    const pages = Math.max(1, Math.ceil(cacheTotal / cacheLimit));
+    document.getElementById('page_label').textContent = '第 ' + cur + ' / ' + pages + ' 页';
+    document.getElementById('pageinfo').textContent = cacheTotal > 0
+      ? ('共 ' + cacheTotal + ' 条，当前 ' + (cacheOffset + 1) + '-' + Math.min(cacheOffset + cacheLimit, cacheTotal) + ' 条') : '';
+    document.getElementById('btn_prev').disabled = cacheOffset <= 0;
+    document.getElementById('btn_next').disabled = cacheOffset + cacheLimit >= cacheTotal;
+  } catch (e) { /* 忽略 */ }
+}
+function cacheSearch() {
+  cacheQ = (document.getElementById('q').value || '').trim();
+  cacheKind = document.getElementById('cache_kind').value;
+  cacheLimit = parseInt(document.getElementById('cache_limit').value, 10) || 50;
+  cacheOffset = 0;
+  loadCacheList();
+}
+function cacheReset() {
+  document.getElementById('q').value = '';
+  document.getElementById('cache_kind').value = 'all';
+  document.getElementById('cache_limit').value = '50';
+  cacheSearch();
+}
+function cachePrev() { if (cacheOffset > 0) { cacheOffset = Math.max(0, cacheOffset - cacheLimit); loadCacheList(); } }
+function cacheNext() { if (cacheOffset + cacheLimit < cacheTotal) { cacheOffset += cacheLimit; loadCacheList(); } }
+
+// ============== 日志（按模型筛选：服务端读日志尾部） ==============
+let logModel = '', logQ = '', logLines = 400;
+
+function logLineClass(ln) {
+  if (/failed|✗|panic|\[ERROR\]|错误/.test(ln)) return 'lg-bad';
+  if (/限速|RATE-LIMIT|COOLDOWN|BREAKER|熔断|deadline/.test(ln)) return 'lg-warn';
+  if (/✓/.test(ln)) return 'lg-ok';
+  if (/\[TIMING\]|\[LLM\]/.test(ln)) return 'lg-dim';
+  return '';
+}
+function renderLogLines(lines) {
+  const pre = document.getElementById('logs_pre');
+  pre.innerHTML = lines.map(l => `<span class="${logLineClass(l)}">${esc(l)}</span>`).join('\n');
+}
+// populateLogModels 用链路里的 provider/model 填充下拉，并顺手标上今日调用次数
+function populateLogModels() {
+  const sel = document.getElementById('log_model');
+  if (!sel) return;
+  const cur = sel.value;
+  const opts = ['<option value="">全部模型 / 全局日志</option>'];
+  const seen = {};
+  chain.forEach(st => {
+    if (!st.model) return;
+    const key = st.provider + '/' + st.model;
+    if (seen[key]) return;
+    seen[key] = 1;
+    const s = lastModelStats[key] || {};
+    const tail = s.calls ? `（今日 ${s.calls} 次${s.failed ? '，失败 ' + s.failed : ''}）` : '';
+    opts.push(`<option value="${esc(key)}">${esc(key + tail)}</option>`);
+  });
+  sel.innerHTML = opts.join('');
+  sel.value = (cur && [...sel.options].some(o => o.value === cur)) ? cur : '';
+}
+async function loadLogs() {
+  const pre = document.getElementById('logs_pre');
+  if (!pre) return;
+  try {
+    const keepBottom = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 40;
+    logModel = (document.getElementById('log_model') || {}).value || '';
+    logQ = ((document.getElementById('log_q') || {}).value || '').trim();
+    logLines = parseInt((document.getElementById('log_lines') || {}).value, 10) || 400;
+    const url = '/worker/logs?lines=' + logLines + '&model=' + encodeURIComponent(logModel) + '&q=' + encodeURIComponent(logQ);
+    const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) { pre.textContent = '读取日志失败: HTTP ' + r.status; return; }
+    const d = await r.json();
+    const lines = d.lines || [];
+    renderLogLines(lines);
+    const sum = document.getElementById('log_summary');
+    if (sum) {
+      sum.textContent = (logModel || '全部模型') + ' · 尾部 ' + (d.total_lines || 0) + ' 行里匹配 ' + (d.matched || 0) +
+        ' 行，显示最近 ' + lines.length + ' 行' + (logQ ? ' · 关键词 “' + logQ + '”' : '');
+    }
+    if (keepBottom) pre.scrollTop = pre.scrollHeight;
+  } catch (e) { pre.textContent = '日志读取异常: ' + e.message; }
+}
+function refreshLogs() { if (activeIs('logs')) loadLogs(); }
+function restartLogTimer() {
+  if (logTimer) { clearInterval(logTimer); logTimer = null; }
+  const live = document.getElementById('log_live');
+  if (!live || !live.checked) return;
+  logTimer = setInterval(() => { if (document.visibilityState === 'visible' && activeIs('logs')) loadLogs(); }, 3000);
+}
+
+// ============== 反馈审核 ==============
+// 用户报"翻译有问题"的反馈落库后（status=pending），这里做人工审核闭环：
+// 看译文（跳缓存浏览并直接展开）→ 重新翻译（清缓存 + 后台重译）→ 标记已处理 / 忽略。
+const ISSUE_LABELS = {
+  wrong_translation: '翻译错误',
+  wrong_meaning: '意思不对',
+  mistranslation: '翻译错误',
+  incomplete: '翻译不完整',
+  typo: '错别字',
+  format: '格式排版',
+  other: '其他',
+};
+const FB_STATUS_TEXT = { pending: '待处理', retranslating: '重译中', done: '已处理', ignored: '已忽略', failed: '重译失败' };
+let fbOffset = 0, fbLimit = 20, fbStatusFilter = 'pending', fbQ = '', fbRows = [];
+
+function issueLabel(t) { return ISSUE_LABELS[t] || t || '未标注'; }
+
+function renderFbCards(c) {
+  c = c || {};
+  let total = 0;
+  for (const k in c) total += c[k];
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  set('fb_n_pending', c.pending || 0);
+  set('fb_n_retranslating', c.retranslating || 0);
+  set('fb_n_failed', c.failed || 0);
+  set('fb_n_done', c.done || 0);
+  set('fb_n_ignored', c.ignored || 0);
+  set('fb_n_total', total);
+}
+// fbCounts 只拉计数（limit=1），用来更新侧边栏角标，代价很小
+async function fbCounts() {
+  try {
+    const r = await fetch('/worker/feedback/list?status=pending&limit=1', { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) return;
+    const d = await r.json();
+    const c = d.counts || {};
+    renderFbCards(c);
+    const pending = (c.pending || 0) + (c.retranslating || 0) + (c.failed || 0);
+    const badge = document.getElementById('fb_badge');
+    if (badge) {
+      badge.textContent = pending > 99 ? '99+' : String(pending);
+      badge.style.display = pending > 0 ? '' : 'none';
+    }
+  } catch (e) { /* 忽略 */ }
+}
+async function fbReload() {
+  fbStatusFilter = (document.getElementById('fb_status') || {}).value || 'pending';
+  fbQ = ((document.getElementById('fb_q') || {}).value || '').trim();
+  fbLimit = parseInt((document.getElementById('fb_limit') || {}).value, 10) || 20;
+  fbOffset = 0;
+  await fbLoad();
+}
+async function fbLoad() {
+  const wrap = document.getElementById('t_feedback');
+  if (!wrap) return;
+  try {
+    const url = '/worker/feedback/list?status=' + encodeURIComponent(fbStatusFilter) + '&q=' + encodeURIComponent(fbQ) +
+      '&limit=' + fbLimit + '&offset=' + fbOffset;
+    const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) { wrap.innerHTML = '<tbody><tr><td class="empty">读取失败 HTTP ' + r.status + '</td></tr></tbody>'; return; }
+    const d = await r.json();
+    fbRows = d.items || [];
+    renderFbCards(d.counts);
+    const total = d.total || 0;
+    const sub = document.getElementById('fb_sub');
+    if (sub) sub.textContent = (fbStatusFilter === 'all' ? '全部状态' : (FB_STATUS_TEXT[fbStatusFilter] || fbStatusFilter)) +
+      ' · 共 ' + total + ' 条' + (fbQ ? ' · 匹配 “' + fbQ + '”' : '');
+    if (!fbRows.length) {
+      wrap.innerHTML = '<tbody><tr><td class="empty">没有反馈</td></tr></tbody>';
+    } else {
+      let html = '<thead><tr><th style="width:30px;"></th><th>时间</th><th>Mod</th><th>问题</th><th>用户反馈</th>'
+        + '<th>译文缓存</th><th>状态</th><th style="text-align:right;">操作</th></tr></thead><tbody>';
+      fbRows.forEach((it, i) => { html += fbRowHtml(it, i); });
+      wrap.innerHTML = html + '</tbody>';
+    }
+    const lbl = document.getElementById('fb_pagelabel');
+    if (lbl) lbl.textContent = total > 0 ? ('第 ' + (Math.floor(fbOffset / fbLimit) + 1) + ' / ' + Math.ceil(total / fbLimit) + ' 页') : '';
+    const prev = document.getElementById('fb_prev'), next = document.getElementById('fb_next');
+    if (prev) prev.disabled = fbOffset <= 0;
+    if (next) next.disabled = fbOffset + fbLimit >= total;
+    updateFbSelAll();
+  } catch (e) { wrap.innerHTML = '<tbody><tr><td class="empty">读取异常: ' + esc(e.message) + '</td></tr></tbody>'; }
+}
+function fbRowHtml(it, i) {
+  const desc = it.desc_updated_at ? fmtTime(it.desc_updated_at) : '';
+  const body = it.body_updated_at ? fmtTime(it.body_updated_at) : '';
+  // 缓存时间晚于反馈时间 => 这份译文是收到反馈之后重新翻的
+  const fresh = Math.max(it.desc_updated_at || 0, it.body_updated_at || 0) > (it.created_at || 0);
+  const cacheCell = (desc || body)
+    ? '<span class="fb-cache">' + (fresh ? '<b>已刷新</b><br>' : '') + '描述 ' + (desc || '未缓存') + '<br>正文 ' + (body || '未缓存') + '</span>'
+    : '<span class="fb-cache">未缓存</span>';
+  const parts = [];
+  if (it.user_suggestion) parts.push('建议：' + esc(it.user_suggestion));
+  if (it.user_comment) parts.push('备注：' + esc(it.user_comment));
+  const fbText = parts.length ? parts.join('\n') : '<em>（用户没写说明）</em>';
+  const st = it.status || 'pending';
+  let actions = '<button class="ghost" onclick="fbViewIdx(' + i + ')">查看译文</button>';
+  if (st !== 'retranslating') actions += '<button class="ghost" onclick="fbRetranslate([' + it.id + '])">重新翻译</button>';
+  if (st === 'done' || st === 'ignored') {
+    actions += '<button class="ghost" onclick="fbMark([' + it.id + '], \'pending\')">退回待处理</button>';
+  } else {
+    actions += '<button class="ghost" onclick="fbMark([' + it.id + '], \'done\')">已处理</button>'
+      + '<button class="ghost" onclick="fbMark([' + it.id + '], \'ignored\')">忽略</button>';
+  }
+  return '<tr>'
+    + '<td><input type="checkbox" class="fb-select fb-row" data-id="' + it.id + '" onchange="updateFbSelAll()"></td>'
+    + '<td class="hint">' + fmtTime(it.created_at) + '</td>'
+    + '<td class="mono">' + esc(it.mod_id) + '<br><span class="hint">' + esc(it.lang || '') + '</span></td>'
+    + '<td><span class="st retranslating" title="' + esc(it.issue_type) + '">' + esc(issueLabel(it.issue_type)) + '</span></td>'
+    + '<td class="fb-feedback" title="来自 IP ' + esc(it.ip) + '">' + fbText + '</td>'
+    + '<td>' + cacheCell + '</td>'
+    + '<td><span class="st ' + esc(st) + '">' + (FB_STATUS_TEXT[st] || esc(st)) + '</span></td>'
+    + '<td class="fb-actions">' + actions + '</td>'
+    + '</tr>';
+}
+function fbSelected() {
+  return [...document.querySelectorAll('.fb-row:checked')].map(c => parseInt(c.getAttribute('data-id'), 10)).filter(n => n > 0);
+}
+function fbToggleSelectAll() {
+  const boxes = [...document.querySelectorAll('.fb-row')];
+  const allChecked = boxes.length > 0 && boxes.every(b => b.checked);
+  boxes.forEach(b => { b.checked = !allChecked; });
+  updateFbSelAll();
+}
+function updateFbSelAll() {
+  const boxes = [...document.querySelectorAll('.fb-row')];
+  const n = boxes.filter(b => b.checked).length;
+  const btn = document.getElementById('fb_selall');
+  if (btn) btn.textContent = (boxes.length > 0 && n === boxes.length) ? '取消全选' : ('全选本页' + (n ? '（已选 ' + n + '）' : ''));
+}
+async function fbMark(ids, status) {
+  if (!ids || !ids.length) return;
+  try {
+    const r = await fetch('/worker/feedback/status', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, status }),
+    });
+    if (!r.ok) { alert('操作失败: HTTP ' + r.status); return; }
+    await fbLoad();
+    fbCounts();
+  } catch (e) { alert('操作失败: ' + e.message); }
+}
+async function fbBatch(status) {
+  const ids = fbSelected();
+  if (!ids.length) { alert('先勾选要处理的反馈'); return; }
+  if (!confirm('把选中的 ' + ids.length + ' 条标记为「' + (FB_STATUS_TEXT[status] || status) + '」？')) return;
+  await fbMark(ids, status);
+}
+async function fbRetranslate(ids) {
+  if (!ids || !ids.length) return;
+  if (!confirm('重新翻译这 ' + ids.length + ' 个 mod？\n会清掉旧的描述+正文缓存后重翻（正文按块翻，可能要几十秒），完成后状态自动变「已处理」。')) return;
+  try {
+    const r = await fetch('/worker/feedback/retranslate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { alert('重新翻译失败: ' + (d.error || ('HTTP ' + r.status))); return; }
+    await fbLoad();
+    fbCounts();
+  } catch (e) { alert('重新翻译失败: ' + e.message); }
+}
+function fbPage(delta) {
+  const next = fbOffset + delta * fbLimit;
+  if (next < 0) return;
+  fbOffset = next;
+  fbLoad();
+}
+// fbViewIdx 用行索引取 mod id，避免把 mod id 拼进 onclick 字符串
+function fbViewIdx(i) {
+  const it = fbRows[i];
+  if (it) fbView(it.mod_id, it.platform);
+}
+// fbView 复用「缓存浏览」的详情面板：搜该 mod → 加载 → 展开第一条（描述/正文成对展示）
+async function fbView(modID, platform) {
+  location.hash = '#/cache';
+  showView('cache');
+  const q = document.getElementById('q');
+  if (q) q.value = modID;
+  cacheQ = modID;
+  cacheKind = 'all';
+  cacheOffset = 0;
+  await loadCacheList();
+  if (cacheRows && cacheRows.length) loadCacheDetail(0);
+}
+
+// ============== 定时器 ==============
+function activeIs(name) { return activeView === name; }
+function startTimers() {
+  stopTimers();
+  statsTimer = setInterval(() => { if (document.visibilityState === 'visible' && activeIs('overview')) refresh(); }, 10000);
+  workerTimer = setInterval(() => {
+    if (document.visibilityState === 'visible' && (activeIs('worker') || activeIs('overview') || activeIs('cache'))) refreshWorker();
+  }, 2000);
+  cacheTimer = setInterval(() => { if (document.visibilityState === 'visible' && activeIs('cache')) loadCacheList(); }, 5000);
+  // 实时槽位：只在停在 worker 页且勾了自动刷新时拉，别让后台标签页一直打接口
+  liveTimer = setInterval(() => {
+    const box = document.getElementById('live_auto');
+    if (document.visibilityState === 'visible' && activeIs('worker') && (!box || box.checked)) loadLive();
+  }, 2000);
+  // 反馈：角标常刷；停在审核页时连列表一起刷，方便看「重译中 -> 已处理」
+  fbTimer = setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    fbCounts();
+    if (activeIs('feedback')) fbLoad();
+  }, 10000);
+  restartLogTimer();   // 日志用页面自己的"实时刷新"开关，间隔 3s
+}
+function stopTimers() {
+  [statsTimer, workerTimer, cacheTimer, logTimer, fbTimer, liveTimer].forEach(t => { if (t) clearInterval(t); });
+  statsTimer = workerTimer = cacheTimer = logTimer = fbTimer = liveTimer = null;
+}
+function toggleAuto() {
+  autoRefresh = !autoRefresh;
+  document.getElementById('autoBtn').textContent = '自动刷新: ' + (autoRefresh ? '开' : '关');
+  if (autoRefresh) startTimers(); else stopTimers();
+}
+function refreshAll() {
+  refresh();
+  refreshWorker();
+  fbCounts();
+  if (activeIs('logs')) refreshLogs();
+  if (activeIs('cache')) loadCacheList();
+  if (activeIs('feedback')) fbLoad();
+}
+
+// ============== 启动 ==============
+(function boot() {
+  let t = null;
+  try { t = localStorage.getItem('trans_theme'); } catch (e) {}
+  if (!t) t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  setTheme(t);
+
+  document.getElementById('q').addEventListener('keydown', e => { if (e.key === 'Enter') cacheSearch(); });
+  document.getElementById('log_q').addEventListener('keydown', e => { if (e.key === 'Enter') loadLogs(); });
+  if (!window.marked || !window.DOMPurify) {
+    rawMode = true;
+    document.getElementById('rawBtn').textContent = '渲染 Markdown';
+    document.getElementById('md_state').textContent = 'Markdown 库未加载，已回退源码模式';
+  }
+  showView(currentRoute());
+  loadConfig();
+  refresh();
+  refreshWorker();
+  populateLogModels();
+  loadLogs();
+  fbCounts();
+  startTimers();
+})();
+
+</script>
+</body>
+</html>

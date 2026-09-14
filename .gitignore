@@ -1,0 +1,24 @@
+# ===== 编译产物 =====
+trans
+trans_linux
+trans.exe
+trans_test.exe
+trans_new
+*.exe
+*.test
+
+# ===== 运行期数据（不入库存档） =====
+cache.db
+cache.db-shm
+cache.db-wal
+*.log
+
+# ===== 工具 / 编辑器 =====
+.codebuddy/
+.trae/
+.codeartsdoer/
+.vscode/
+.idea/
+
+# ===== 构建临时文件 =====
+_build/check.js
